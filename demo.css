@@ -2,7 +2,9 @@
 :root{--demo-h:34px}
 html,body{height:100%}
 .demo-banner{height:var(--demo-h);display:flex;align-items:center;gap:10px;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));background:var(--warn-soft);color:var(--warn);font-size:12.5px;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden}
-.demo-banner span{overflow:hidden;text-overflow:ellipsis}
+.demo-banner span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+html[lang="en"] .research-notes .note-line{grid-template-columns:84px 1fr}
+.demo-lang{margin-left:auto;flex-shrink:0;color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:2px}
 .demo-pill{font-size:12px;font-weight:600;color:var(--warn);background:var(--warn-soft);border-radius:999px;padding:3px 10px}
 .layout{height:calc(100% - 54px - var(--demo-h))}
 .node-card.map-max{top:calc(54px + var(--demo-h))}
