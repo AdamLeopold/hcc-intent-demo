@@ -9,7 +9,9 @@
   const EN = (document.documentElement.lang || '').startsWith('en');
   const L = (zh, en) => (EN ? en : zh);
   let DATA = null;
-  const ready = realFetch('data.json').then(r => r.json()).then(d => { DATA = d; });
+  // The page names the data version (a content hash) so a cached older data.json is never used.
+  const version = (document.querySelector('meta[name="data-version"]') || {}).content;
+  const ready = realFetch('data.json' + (version ? '?v=' + version : '')).then(r => r.json()).then(d => { DATA = d; });
   const S = { marks: {}, revealed: new Set(), chats: {}, stopped: new Set() };
   const clone = v => JSON.parse(JSON.stringify(v));
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
