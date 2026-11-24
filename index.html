@@ -1,132 +1,37 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="hcc-token" content="demo">
-<meta name="description" content="重复 TACE 节点工作台的公开演示：虚构患者、时间锁视图、A/B 层记录、治疗地图与预设的流式 AI 回答。">
-<title>HCC-INTENT 演示</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="hcc-token" content="static"><title>HCC-INTENT · 患者治疗地图</title>
+<meta name="description" content="患者治疗地图：按住院和操作展开完整病程，连接每一次治疗与下一步。">
 <link rel="alternate" hreflang="en" href="en/">
-<link rel="stylesheet" href="workbench.css">
-<link rel="stylesheet" href="demo.css">
-</head>
+<link rel="stylesheet" href="flow.css"><link rel="stylesheet" href="site.css">
+<script src="mock.js"></script><script src="flow.js" defer></script></head>
 <body>
-<header class="topbar">
-  <button id="togglePatients" class="icon-btn only-narrow" aria-label="患者列表">☰</button>
-  <div class="brand"><span class="brand-mark">H</span><div><strong>HCC-INTENT</strong><small>重复 TACE 节点工作台</small></div></div>
-  <div id="statusChips" class="status-chips"></div>
-  <div class="top-actions">
-    <span class="demo-pill">公开演示</span>
-    <button id="themeToggle" class="icon-btn" aria-label="切换明暗主题" title="切换明暗主题">◐</button>
-    <button id="toggleAssistant" class="icon-btn only-medium" aria-label="AI 助手">✦</button>
-  </div>
-</header>
-<div class="demo-banner" role="note"><b>公开演示</b><span>全部是虚构患者；AI 回答为预设脚本，不连接任何医院数据或模型；在这里填写的记录只保存在当前页面。</span><a class="demo-lang" href="en/" hreflang="en" lang="en">English</a></div>
-
-<div class="layout">
-  <aside id="patientsPanel" class="patients">
-    <div class="panel-head">
-      <label class="search"><span aria-hidden="true">⌕</span><input id="patientSearch" placeholder="搜索研究编号" aria-label="搜索研究编号" autocomplete="off"></label>
-      <div class="segmented" id="scopeSwitch" role="tablist" aria-label="患者范围">
-        <button data-scope="hcc_nodes" class="active" role="tab">HCC 节点</button>
-        <button data-scope="nodes" role="tab">全部节点</button>
-        <button data-scope="all" role="tab">全部患者</button>
-      </div>
-      <div class="list-meta"><span id="patientTotal">—</span><span class="hint">按最近住院排序</span></div>
-    </div>
-    <div id="patientList" class="patient-list" role="listbox" aria-label="患者"></div>
-    <button id="loadMore" class="ghost-btn load-more" hidden>加载更多</button>
-  </aside>
-
-  <main id="casePanel" class="case">
-    <section id="welcome" class="welcome">
-      <div class="welcome-card">
-        <h1>重复 TACE 节点工作台</h1>
-        <p>每个节点只看当时可见的信息，再决定下一步。</p>
-        <ol class="steps">
-          <li><b>选患者和节点</b><span>左侧默认列出有重复 TACE 节点的肝细胞癌患者；时间轴上的 ◆ 是节点。</span></li>
-          <li><b>看当时可见的病程</b><span>时间锁默认开启：节点入院之后的住院、本次住院的内容都隐藏。</span></li>
-          <li><b>问 AI，记下判断</b><span>右侧对话会实时显示思考、工具调用和回答；B 层判断由医生填写，AI 不预填。</span></li>
-        </ol>
-        <div id="welcomeNotes" class="research-notes"></div>
-      </div>
-    </section>
-
-    <section id="caseView" class="case-view" hidden>
-      <div class="case-head">
-        <div class="case-title">
-          <div class="eyebrow" id="caseEyebrow"></div>
-          <h1 id="caseTitle"></h1>
-          <div id="caseBadges" class="badges"></div>
-        </div>
-        <div id="caseStats" class="case-stats"></div>
-      </div>
-
-      <div class="card timeline-card">
-        <div class="card-head">
-          <div class="node-strip" id="nodeStrip" aria-label="重复 TACE 节点"></div>
-          <div class="segmented mode-switch" id="modeSwitch" aria-label="视图模式">
-            <button data-mode="locked" class="active" title="只显示节点入院前已出院的住院">🔒 时间锁</button>
-            <button data-mode="full" title="显示全部住院，会记录为已查看后续病程">全病程</button>
-          </div>
-        </div>
-        <div id="modeHint" class="mode-hint"></div>
-        <div id="timeline" class="timeline" aria-label="住院时间轴"></div>
-        <div class="legend" id="timelineLegend"></div>
-      </div>
-
-      <div class="card node-card">
-        <nav class="tabs" id="tabs" role="tablist">
-          <button data-tab="visible" class="active" role="tab">当时可见</button>
-          <button data-tab="alayer" role="tab">A 层 · 状态</button>
-          <button data-tab="blayer" role="tab">B 层 · 医生记录</button>
-          <button data-tab="after" role="tab">后续病程</button>
-          <button data-tab="map" role="tab">治疗地图</button>
-          <button data-tab="detail" role="tab">住院详情</button>
-        </nav>
-        <div id="tabBody" class="tab-body"></div>
-      </div>
-    </section>
-  </main>
-
-  <aside id="assistantPanel" class="assistant">
-    <div class="assistant-head">
-      <div class="assistant-title"><span class="spark">✦</span><div><strong>AI 助手</strong><small id="assistantSub">云端模型 · 流式</small></div></div>
-      <span id="assistantDot" class="dot" title="状态"></span>
-    </div>
-    <div class="model-row">
-      <select id="providerSelect" aria-label="接口"></select>
-      <select id="modelSelect" aria-label="模型"></select>
-      <select id="effortSelect" aria-label="思考强度" title="思考强度">
-        <option value="low">低思考</option><option value="medium">中思考</option><option value="high" selected>高思考</option>
-      </select>
-    </div>
-    <div id="exportBanner" class="export-banner"></div>
-    <div class="context-bar">
-      <span id="contextChip" class="context-chip">未选择患者</span>
-      <div class="context-actions">
-        <select id="historySelect" aria-label="历史对话"><option value="">历史对话</option></select>
-        <button id="newChat" class="ghost-btn small">新对话</button>
-      </div>
-    </div>
-    <div id="messages" class="messages" aria-live="polite"></div>
-    <div id="quickPrompts" class="quick-prompts"></div>
-    <form id="composer" class="composer">
-      <textarea id="composerInput" rows="3" placeholder="问这个节点的问题，或补充当时的检查结果…（Enter 发送，Shift+Enter 换行）"></textarea>
-      <div class="composer-actions">
-        <div class="left">
-          <button type="button" id="voiceBtn" class="icon-btn" title="本地语音转文字" aria-label="语音输入">🎙</button>
-          <label class="icon-btn" title="上传文字型文件（本地提取）" aria-label="上传文件">📎<input id="fileInput" type="file" accept=".txt,.md,.json,.pdf,.docx" hidden></label>
-          <span id="composerNote" class="composer-note"></span>
-        </div>
-        <button type="submit" id="sendBtn" class="primary-btn">发送</button>
-      </div>
-    </form>
-  </aside>
-</div>
-<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<aside id="patientPanel" class="patient-panel">
+  <a class="brand" href="workbench.html"><span class="brand-icon">H</span><span>HCC-INTENT<small>BIOAGENT / CLINICAL INTELLIGENCE</small></span></a>
+  <div class="workspace-tag"><i></i> 患者治疗地图 <span>LIVE</span></div>
+  <div class="list-heading">患者档案 <span id="totalPatients">—</span></div>
+  <label class="search"><span>⌕</span><input id="patientSearch" aria-label="搜索姓名或身份证后四位" placeholder="姓名 / 身份证后四位"></label>
+  <div id="patientList" class="patient-list"></div><button id="loadMore" class="load-more">加载更多患者</button>
+  <div class="sidebar-foot"><i></i><div>GPT-6 Astra<small>本机档案 · 持续分析</small></div><span>✧</span></div>
+</aside>
+<main id="mainPanel">
+  <header class="topbar"><div class="patient-title"><button id="togglePatients" aria-label="收起或展开患者列表">☰</button><div><div class="eyebrow">PATIENT JOURNEY</div><h1 id="patientName">患者治疗地图</h1></div></div><div class="header-tools"><a class="site-link" href="workbench.html" title="重复 TACE 节点工作台">新版工作台 ↗</a><nav class="lang-switch" aria-label="Language"><span aria-current="page">中文</span><a href="en/" hreflang="en" lang="en">English</a></nav><button id="showVersions">版本记录</button><button id="fullscreen" aria-label="全屏画布">⛶</button><button id="toggleInspector" aria-label="收起或展开分析面板">◧</button></div></header>
+  <div class="journey-meta"><span id="patientRange">读取患者档案…</span><span id="nodeCount"></span><span class="legend"><i></i> 已记录 <i class="purple"></i> 后续分支</span></div>
+  <section id="canvas" class="canvas" aria-label="可拖拽患者治疗流程图" tabindex="0">
+    <div class="canvas-grid"></div><div id="world" class="world"><svg id="episodeBraces" class="edges" aria-label="住院阶段汇总括号"></svg><div id="episodeSummaries"></div><svg id="edges" class="edges" aria-label="治疗连线"></svg><div id="edgeLabels"></div><div id="nodes"></div></div>
+    <div id="canvasEmpty" class="canvas-empty"><div class="orbit">✧</div><h2>连接每一次治疗与下一步</h2><p>选择患者，展开完整治疗地图</p></div>
+    <div class="canvas-top"><button id="journeyIndex">病程目录</button><button id="addNode" class="accent">＋ 添加状态</button><button id="addLink">↗ 绘制连线</button><button id="undoEdit" title="撤销最近一次临床编辑">撤销</button></div>
+    <div class="canvas-bottom"><div class="canvas-controls"><button id="zoomOut" aria-label="缩小">−</button><span id="zoomValue">100%</span><button id="zoomIn" aria-label="放大">＋</button><span class="divider"></span><button id="fitGraph">适应全图</button><button id="goCurrent">定位当前</button><button id="resetLayout" title="恢复自动布局">↺</button></div><span class="gesture-hint">拖动节点调整布局 · 拖动画布平移 · 滚轮缩放</span></div>
+    <div class="minimap-wrap"><div>病程导航 <span id="saveState">布局已保存</span></div><svg id="minimap" width="200" height="90" aria-label="病程缩略导航"></svg></div>
+  </section>
+  <footer><span><i></i> <span id="jobStatus">就绪</span></span><span id="revisionLabel">FLOW / v0</span></footer>
+</main>
+<aside id="inspector" class="inspector">
+  <div class="inspector-heading"><span class="astra-mark">✧</span><div><h2>Astra 临床分析</h2><small>从记录到判断，从判断到下一步</small></div><span id="busyDot" class="status-dot"></span></div>
+  <div class="inspector-tabs"><button id="analysisTab" class="active">后续分析</button><button id="detailTab">节点详情</button><button id="editTab">补充记录</button></div>
+  <div id="inspectorBody" class="inspector-body"><div class="empty-panel">选择一个状态框或治疗连线，查看详细内容。</div></div>
+  <div class="inspector-bottom"><label><input type="checkbox" id="publicSearch" checked> 检索公共指南</label><button id="reanalyze" class="accent">重新分析 ↗</button></div>
+</aside>
+<dialog id="versionsDialog"><div class="dialog-title"><h2>流程版本与分析记录</h2><button id="closeVersions">×</button></div><div id="versionList"></div></dialog>
 <div id="toast" class="toast" role="status" hidden></div>
-<script src="mock.js"></script>
-<script src="workbench.js"></script>
-</body>
-</html>
+</body></html>

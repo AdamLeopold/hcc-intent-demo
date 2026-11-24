@@ -1,132 +1,37 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="hcc-token" content="demo">
-<meta name="description" content="Public demo of the repeat-TACE node workbench: made-up patients, time-locked view, Layer A/B records, treatment map and preset streaming AI answers.">
-<title>HCC-INTENT demo</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="hcc-token" content="static"><title>HCC-INTENT · Patient treatment map</title>
+<meta name="description" content="Patient treatment map: the whole course by admission and procedure, linking every treatment to the next step.">
 <link rel="alternate" hreflang="zh-CN" href="../">
-<link rel="stylesheet" href="../workbench.css">
-<link rel="stylesheet" href="../demo.css">
-</head>
+<link rel="stylesheet" href="../flow.css"><link rel="stylesheet" href="../site.css">
+<script src="../mock.js"></script><script src="flow.js" defer></script></head>
 <body>
-<header class="topbar">
-  <button id="togglePatients" class="icon-btn only-narrow" aria-label="Patient list">☰</button>
-  <div class="brand"><span class="brand-mark">H</span><div><strong>HCC-INTENT</strong><small>Repeat-TACE node workbench</small></div></div>
-  <div id="statusChips" class="status-chips"></div>
-  <div class="top-actions">
-    <span class="demo-pill">Public demo</span>
-    <button id="themeToggle" class="icon-btn" aria-label="Switch light/dark theme" title="Switch light/dark theme">◐</button>
-    <button id="toggleAssistant" class="icon-btn only-medium" aria-label="AI assistant">✦</button>
-  </div>
-</header>
-<div class="demo-banner" role="note"><b>Public demo</b><span>All patients are made up; AI answers are preset scripts with no hospital data or model connected; records you fill in stay in this page only.</span><a class="demo-lang" href="../" hreflang="zh-CN" lang="zh-CN">中文</a></div>
-
-<div class="layout">
-  <aside id="patientsPanel" class="patients">
-    <div class="panel-head">
-      <label class="search"><span aria-hidden="true">⌕</span><input id="patientSearch" placeholder="Search research ID" aria-label="Search research ID" autocomplete="off"></label>
-      <div class="segmented" id="scopeSwitch" role="tablist" aria-label="Patient scope">
-        <button data-scope="hcc_nodes" class="active" role="tab">HCC nodes</button>
-        <button data-scope="nodes" role="tab">All nodes</button>
-        <button data-scope="all" role="tab">All patients</button>
-      </div>
-      <div class="list-meta"><span id="patientTotal">—</span><span class="hint">Sorted by latest admission</span></div>
-    </div>
-    <div id="patientList" class="patient-list" role="listbox" aria-label="Patients"></div>
-    <button id="loadMore" class="ghost-btn load-more" hidden>Load more</button>
-  </aside>
-
-  <main id="casePanel" class="case">
-    <section id="welcome" class="welcome">
-      <div class="welcome-card">
-        <h1>Repeat-TACE node workbench</h1>
-        <p>At each node, look only at what was visible at the time, then decide the next step.</p>
-        <ol class="steps">
-          <li><b>Pick a patient and a node</b><span>The list on the left shows hepatocellular carcinoma patients with repeat-TACE nodes; ◆ on the timeline marks a node.</span></li>
-          <li><b>See the course visible then</b><span>The time lock is on by default: admissions after the node admission, and the contents of the node admission itself, are hidden.</span></li>
-          <li><b>Ask AI, record your judgement</b><span>The chat on the right streams the reasoning, tool calls and answer; Layer B is filled in by the physician, never pre-filled by AI.</span></li>
-        </ol>
-        <div id="welcomeNotes" class="research-notes"></div>
-      </div>
-    </section>
-
-    <section id="caseView" class="case-view" hidden>
-      <div class="case-head">
-        <div class="case-title">
-          <div class="eyebrow" id="caseEyebrow"></div>
-          <h1 id="caseTitle"></h1>
-          <div id="caseBadges" class="badges"></div>
-        </div>
-        <div id="caseStats" class="case-stats"></div>
-      </div>
-
-      <div class="card timeline-card">
-        <div class="card-head">
-          <div class="node-strip" id="nodeStrip" aria-label="Repeat-TACE nodes"></div>
-          <div class="segmented mode-switch" id="modeSwitch" aria-label="View mode">
-            <button data-mode="locked" class="active" title="Show only admissions discharged before the node admission">🔒 Time lock</button>
-            <button data-mode="full" title="Show all admissions; logged as follow-up course viewed">Full course</button>
-          </div>
-        </div>
-        <div id="modeHint" class="mode-hint"></div>
-        <div id="timeline" class="timeline" aria-label="Admission timeline"></div>
-        <div class="legend" id="timelineLegend"></div>
-      </div>
-
-      <div class="card node-card">
-        <nav class="tabs" id="tabs" role="tablist">
-          <button data-tab="visible" class="active" role="tab">Visible then</button>
-          <button data-tab="alayer" role="tab">Layer A · state</button>
-          <button data-tab="blayer" role="tab">Layer B · physician record</button>
-          <button data-tab="after" role="tab">Follow-up course</button>
-          <button data-tab="map" role="tab">Treatment map</button>
-          <button data-tab="detail" role="tab">Admission details</button>
-        </nav>
-        <div id="tabBody" class="tab-body"></div>
-      </div>
-    </section>
-  </main>
-
-  <aside id="assistantPanel" class="assistant">
-    <div class="assistant-head">
-      <div class="assistant-title"><span class="spark">✦</span><div><strong>AI assistant</strong><small id="assistantSub">Cloud model · streaming</small></div></div>
-      <span id="assistantDot" class="dot" title="Status"></span>
-    </div>
-    <div class="model-row">
-      <select id="providerSelect" aria-label="Provider"></select>
-      <select id="modelSelect" aria-label="Model"></select>
-      <select id="effortSelect" aria-label="Reasoning effort" title="Reasoning effort">
-        <option value="low">Low</option><option value="medium">Medium</option><option value="high" selected>High</option>
-      </select>
-    </div>
-    <div id="exportBanner" class="export-banner"></div>
-    <div class="context-bar">
-      <span id="contextChip" class="context-chip">No patient selected</span>
-      <div class="context-actions">
-        <select id="historySelect" aria-label="Past chats"><option value="">Past chats</option></select>
-        <button id="newChat" class="ghost-btn small">New chat</button>
-      </div>
-    </div>
-    <div id="messages" class="messages" aria-live="polite"></div>
-    <div id="quickPrompts" class="quick-prompts"></div>
-    <form id="composer" class="composer">
-      <textarea id="composerInput" rows="3" placeholder="Ask about this node, or add test results from the time… (Enter to send, Shift+Enter for a new line)"></textarea>
-      <div class="composer-actions">
-        <div class="left">
-          <button type="button" id="voiceBtn" class="icon-btn" title="Local speech to text" aria-label="Voice input">🎙</button>
-          <label class="icon-btn" title="Upload a text file (extracted locally)" aria-label="Upload file">📎<input id="fileInput" type="file" accept=".txt,.md,.json,.pdf,.docx" hidden></label>
-          <span id="composerNote" class="composer-note"></span>
-        </div>
-        <button type="submit" id="sendBtn" class="primary-btn">Send</button>
-      </div>
-    </form>
-  </aside>
-</div>
-<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<aside id="patientPanel" class="patient-panel">
+  <a class="brand" href="workbench.html"><span class="brand-icon">H</span><span>HCC-INTENT<small>BIOAGENT / CLINICAL INTELLIGENCE</small></span></a>
+  <div class="workspace-tag"><i></i> Patient treatment map <span>LIVE</span></div>
+  <div class="list-heading">Patient records <span id="totalPatients">—</span></div>
+  <label class="search"><span>⌕</span><input id="patientSearch" aria-label="Search by name or last four ID digits" placeholder="Name / last four ID digits"></label>
+  <div id="patientList" class="patient-list"></div><button id="loadMore" class="load-more">Load more patients</button>
+  <div class="sidebar-foot"><i></i><div>GPT-6 Astra<small>Local records · continuous analysis</small></div><span>✧</span></div>
+</aside>
+<main id="mainPanel">
+  <header class="topbar"><div class="patient-title"><button id="togglePatients" aria-label="Collapse or expand the patient list">☰</button><div><div class="eyebrow">PATIENT JOURNEY</div><h1 id="patientName">Patient treatment map</h1></div></div><div class="header-tools"><a class="site-link" href="workbench.html" title="Repeat-TACE node workbench">New workbench ↗</a><nav class="lang-switch" aria-label="Language"><a href="../" hreflang="zh-CN" lang="zh-CN">中文</a><span aria-current="page">English</span></nav><button id="showVersions">Versions</button><button id="fullscreen" aria-label="Full-screen canvas">⛶</button><button id="toggleInspector" aria-label="Collapse or expand the analysis panel">◧</button></div></header>
+  <div class="journey-meta"><span id="patientRange">Loading patient records…</span><span id="nodeCount"></span><span class="legend"><i></i> Recorded <i class="purple"></i> Next branches</span></div>
+  <section id="canvas" class="canvas" aria-label="Draggable patient treatment flowchart" tabindex="0">
+    <div class="canvas-grid"></div><div id="world" class="world"><svg id="episodeBraces" class="edges" aria-label="Episode summary brackets"></svg><div id="episodeSummaries"></div><svg id="edges" class="edges" aria-label="Treatment links"></svg><div id="edgeLabels"></div><div id="nodes"></div></div>
+    <div id="canvasEmpty" class="canvas-empty"><div class="orbit">✧</div><h2>Link every treatment to the next step</h2><p>Select a patient to open the full treatment map</p></div>
+    <div class="canvas-top"><button id="journeyIndex">Course index</button><button id="addNode" class="accent">+ Add state</button><button id="addLink">↗ Draw link</button><button id="undoEdit" title="Undo the last clinical edit">Undo</button></div>
+    <div class="canvas-bottom"><div class="canvas-controls"><button id="zoomOut" aria-label="Zoom out">−</button><span id="zoomValue">100%</span><button id="zoomIn" aria-label="Zoom in">+</button><span class="divider"></span><button id="fitGraph">Fit all</button><button id="goCurrent">Go to current</button><button id="resetLayout" title="Restore automatic layout">↺</button></div><span class="gesture-hint">Drag nodes to arrange · drag the canvas to pan · scroll to zoom</span></div>
+    <div class="minimap-wrap"><div>Course navigator <span id="saveState">Layout saved</span></div><svg id="minimap" width="200" height="90" aria-label="Course minimap"></svg></div>
+  </section>
+  <footer><span><i></i> <span id="jobStatus">Ready</span></span><span id="revisionLabel">FLOW / v0</span></footer>
+</main>
+<aside id="inspector" class="inspector">
+  <div class="inspector-heading"><span class="astra-mark">✧</span><div><h2>Astra clinical analysis</h2><small>From records to judgement, from judgement to the next step</small></div><span id="busyDot" class="status-dot"></span></div>
+  <div class="inspector-tabs"><button id="analysisTab" class="active">Next steps</button><button id="detailTab">Node details</button><button id="editTab">Add record</button></div>
+  <div id="inspectorBody" class="inspector-body"><div class="empty-panel">Select a state box or treatment link to see details.</div></div>
+  <div class="inspector-bottom"><label><input type="checkbox" id="publicSearch" checked> Search public guidelines</label><button id="reanalyze" class="accent">Reanalyse ↗</button></div>
+</aside>
+<dialog id="versionsDialog"><div class="dialog-title"><h2>Map versions and analyses</h2><button id="closeVersions">×</button></div><div id="versionList"></div></dialog>
 <div id="toast" class="toast" role="status" hidden></div>
-<script src="../mock.js"></script>
-<script src="workbench.js"></script>
-</body>
-</html>
+</body></html>

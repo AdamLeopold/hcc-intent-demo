@@ -1,0 +1,10 @@
+/* Static site: header language switch and the link between the two pages. Colors come from each page's tokens
+   (workbench.css: --accent*, flow.css: --mint). */
+.lang-switch{display:inline-flex;align-items:center;flex-shrink:0;border:1px solid var(--border);border-radius:999px;overflow:hidden;font-size:12px;line-height:1;margin-left:4px}
+.lang-switch>*{padding:6px 11px;color:var(--muted);text-decoration:none;white-space:nowrap}
+.lang-switch a:hover{color:var(--text)}
+.lang-switch [aria-current]{background:var(--accent-soft,#12312c);color:var(--accent-text,var(--mint,#6ee7c2));font-weight:600}
+.header-tools{align-items:center}
+.site-link{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:7px;background:#162230;color:var(--text);padding:8px 12px;text-decoration:none;white-space:nowrap;font-size:13px}
+.site-link:hover{border-color:var(--mint,#6ee7c2)}
+@media(max-width:850px){.site-link{display:none}}

@@ -1,14 +1,15 @@
 'use strict';
-// Static demo: stands in for the workbench server inside the browser.
-// Reads come from demo-data.json (pre-computed from made-up patients); records, chats and
-// "viewed full course" flags live only in this page. Nothing is sent anywhere.
-// The same file serves the Chinese page and the English page (<html lang="en">).
+// Static site: stands in for the workbench server inside the browser, for both the treatment map
+// (flow.js) and the repeat-TACE workbench (workbench.js). Reads come from data.json (pre-computed
+// from script-generated patients); records, chats and "viewed full course" flags live only in this
+// page. Nothing is sent anywhere. The same file serves the Chinese and English pages (<html lang="en">).
+// Built by scripts/build_static_demo.py; visible messages must not use demo wording (build check).
 (() => {
   const realFetch = window.fetch.bind(window);
   const EN = (document.documentElement.lang || '').startsWith('en');
   const L = (zh, en) => (EN ? en : zh);
   let DATA = null;
-  const ready = realFetch('demo-data.json').then(r => r.json()).then(d => { DATA = d; });
+  const ready = realFetch('data.json').then(r => r.json()).then(d => { DATA = d; });
   const S = { marks: {}, revealed: new Set(), chats: {}, stopped: new Set() };
   const clone = v => JSON.parse(JSON.stringify(v));
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -22,7 +23,7 @@
       key: u.pathname.replace(/^.*?(\/api\/)/, '/api/') + (params.length ? '?' + params.map(([k, v]) => `${k}=${v}`).join('&') : '') };
   }
   function stored(key) { const hit = DATA.responses[key]; return hit ? { status: hit.status, body: clone(hit.body) } : null; }
-  function reply(key) { const hit = stored(key); return hit ? json(hit.body, hit.status) : json({ error: L('演示版没有这项数据', 'Not available in the demo') }, 404); }
+  function reply(key) { const hit = stored(key); return hit ? json(hit.body, hit.status) : json({ error: L('暂无这项数据', 'No data for this request') }, 404); }
   const marksOf = pid => (S.marks[pid] = S.marks[pid] || { revision: 0, nodes: {} });
   const chatsOf = pid => (S.chats[pid] = S.chats[pid] || []);
   const reveal = (pid, node) => S.revealed.add(`${pid}|${node || '*'}`);
@@ -41,7 +42,7 @@
       case '/api/v2/patients': {
         const base = stored(`/api/v2/patients?offset=0&scope=${params.scope || 'hcc_nodes'}`).body;
         const q = (params.q || '').toLowerCase();
-        const list = base.patients.filter(p => !q || p.patient_id.toLowerCase().includes(q))
+        const list = base.patients.filter(p => !q || (p.display_name + ' ' + p.patient_id).toLowerCase().includes(q))
           .map(p => ({ ...p, marked_nodes: Object.keys(marksOf(p.patient_id).nodes).length }));
         return json({ patients: list, total: list.length, offset: 0, has_more: false });
       }
@@ -64,6 +65,14 @@
       case '/api/v2/map': reveal(pid, ''); return reply(`/api/v2/map?id=${pid}`);
       case '/api/v2/chats': return json({ chats: chatsOf(pid).map(c => summary(c)) });
       case '/api/v2/chat': { const c = chatsOf(pid).find(x => x.chat_id === params.chat); return c ? json(clone(c)) : json({ error: L('对话不存在', 'No such chat') }, 400); }
+      case '/api/flow/patients': {
+        const base = stored('/api/flow/patients?offset=0').body;
+        const q = (params.q || '').trim().toLowerCase();
+        const list = base.patients.filter(p => !q || (p.display_name + p.patient_id).toLowerCase().includes(q));
+        return json({ patients: Number(params.offset || 0) ? [] : list, total: list.length, offset: Number(params.offset || 0), has_more: false });
+      }
+      // The treatment map page reads the same graph the workbench map tab shows.
+      case '/api/flow': return params.branch ? reply(key) : reply(`/api/v2/map?id=${pid}`);
       case '/api/job': return json({ error: L('任务不存在', 'No such job') }, 404);
       default: return reply(key);
     }
@@ -88,23 +97,22 @@
       }
       case '/api/v2/chat/stream': return chatStream(body);
       case '/api/v2/chat/stop': S.stopped.add(body.stream_id); return json({ stopped: true });
-      case '/api/flow/save': return json({ error: L('演示版不保存治疗地图的修改；真实工作台可以补录、连线、撤销和恢复版本。',
-        'The demo does not save changes to the treatment map; the real workbench can add records, draw links, undo and restore versions.') }, 400);
+      case '/api/flow/save': return json({ error: L('只读模式：治疗地图的修改不会保存。', 'Read-only mode: changes to the treatment map are not saved.') }, 400);
       case '/api/flow/layout': return json({ saved: true, revision: 0 });
       case '/api/flow/analyze': {
         const map = stored(`/api/v2/map?id=${body.patient_id}`);
         return map && map.body.analysis ? json({ status: 'cached' })
-          : json({ error: L('演示版不运行 AI 分析。患者 P-9615… 的治疗地图里有一份预先录制的分析结果。',
-            'The demo does not run AI analysis. The treatment map of patient P-9615… has a pre-recorded analysis.') }, 400);
+          : json({ error: L(`只读模式不运行新的 AI 分析；${DATA.featured.name} 的治疗地图有已保存的分析。`,
+            `Read-only mode runs no new AI analysis; the treatment map of ${DATA.featured.name} has a saved analysis.`) }, 400);
       }
       case '/api/upload': {
-        if (!/\.(txt|md|json)$/i.test(body.filename || '')) return json({ error: L('演示版只在本页读取 TXT、Markdown、JSON 文件', 'The demo reads only TXT, Markdown and JSON files, inside this page') }, 400);
+        if (!/\.(txt|md|json)$/i.test(body.filename || '')) return json({ error: L('只读模式只在本页读取 TXT、Markdown、JSON 文件', 'Read-only mode reads only TXT, Markdown and JSON files, inside this page') }, 400);
         const bytes = Uint8Array.from(atob(body.data || ''), c => c.charCodeAt(0));
         const text = new TextDecoder().decode(bytes).trim();
         return json({ text, characters: text.length, processing: 'local_only' });
       }
-      case '/api/voice': return json({ error: L('演示版不支持语音输入', 'The demo does not support voice input') }, 400);
-      default: return json({ error: L('演示版没有这个接口', 'Not available in the demo') }, 404);
+      case '/api/voice': return json({ error: L('当前环境不支持语音输入', 'Voice input is not available here') }, 400);
+      default: return json({ error: L('当前不支持这项操作', 'This action is not available here') }, 404);
     }
   }
 
@@ -224,20 +232,20 @@ ${fired.map(r => `- **${r.title}**：${r.detail}`).join('\n')}
   function cohort(nd) {
     const c = nd.cohort;
     if (!c.available) return L('队列参考不可用：', 'Cohort reference unavailable: ') + c.reason;
-    if (EN) return `How often similar nodes in this hospital (demo data) actually switched treatment within 180 days:
+    if (EN) return `How often similar nodes in this hospital actually switched treatment within 180 days:
 
 | Reference group | Nodes | Patients | Switched | Rate |
 |---|---|---|---|---|
 ${c.groups.map(g => `| ${g.label} | ${g.nodes} | ${g.patients} | ${g.positive} | ${rate(g)} |`).join('\n')}
 
-**What it tells us:** what this hospital actually did at similar nodes in the past. **What it does not tell us:** efficacy, benefit, or what this patient “should” have. The demo sample is tiny, so the numbers are only illustrative.`;
-    return `本院（演示数据）同类节点在 180 天内实际发生转换的频率：
+**What it tells us:** what this hospital actually did at similar nodes in the past. **What it does not tell us:** efficacy, benefit, or what this patient “should” have. The sample is tiny, so the numbers are only illustrative.`;
+    return `本院同类节点在 180 天内实际发生转换的频率：
 
 | 参考组 | 节点 | 患者 | 发生转换 | 频率 |
 |---|---|---|---|---|
 ${c.groups.map(g => `| ${g.label} | ${g.nodes} | ${g.patients} | ${g.positive} | ${rate(g)} |`).join('\n')}
 
-**能说明什么：** 本院过去在类似节点上实际怎么做。**不能说明什么：** 疗效、获益，或这位患者“应该”怎么做。演示数据样本很小，数字只作示意。`;
+**能说明什么：** 本院过去在类似节点上实际怎么做。**不能说明什么：** 疗效、获益，或这位患者“应该”怎么做。样本很小，数字只作示意。`;
   }
   function compare(nd, hs) {
     const w = hs.within_window;
@@ -264,16 +272,12 @@ ${visibleLines(nd)}
 ${t.admissions.map(a => `- ${a.ref} (day ${a.admission_day}${a.node_k ? `, TACE node #${a.node_k}` : ''}): ${cls(a.classes)}, stay ${dash(a.los_days)} d${a.death ? ', in-hospital death' : ''}`).join('\n')}
 
 ### Treatment sequence
-${t.admissions.map(a => cls(a.classes)).join(' → ')}
-
-This is demo data; the treatment order was generated at random by a script.`;
+${t.admissions.map(a => cls(a.classes)).join(' → ')}`;
     return `### 全部住院（第 0 天 = 首次入院）
 ${t.admissions.map(a => `- ${a.ref}（第 ${a.admission_day} 天${a.node_k ? `，第 ${a.node_k} 次 TACE 节点` : ''}）：${cls(a.classes)}，住院 ${dash(a.los_days)} 天${a.death ? '，院内死亡' : ''}`).join('\n')}
 
 ### 治疗序列
-${t.admissions.map(a => cls(a.classes)).join(' → ')}
-
-这是演示数据，治疗顺序由脚本随机生成。`;
+${t.admissions.map(a => cls(a.classes)).join(' → ')}`;
   }
   // Which scripted answer a question gets; the preset prompts in the workbench contain these words.
   const KIND = EN
@@ -288,7 +292,7 @@ ${t.admissions.map(a => cls(a.classes)).join(' → ')}
       : pick('brief') || pick('missing') || pick('rules') || pick('cohort') || 'free';
     const canned = DATA.canned[`${pid}|${node}|${mode}|${kind}`];
     if (canned) return { model: canned.model, thinking: canned.thinking, content: canned.content, tools: [] };
-    const base = { model: L('演示脚本（预设回答）', 'Demo script (preset answers)'), tools: [] };
+    const base = { model: L('离线模式', 'Offline mode'), tools: [] };
     if (kind === 'brief') return { ...base, content: brief(nd), thinking: L(
       `读取第 ${nd.node.k} 次 TACE 节点当时可见的 ${nd.visible.length} 次住院；对照规则提示和派生特征；首页没有影像和检验，所以状态只能给 S4；再按 8 个行动族列出条件。`,
       `Read the ${nd.visible.length} admissions visible at TACE node #${nd.node.k}; check the rule alerts and derived features; the discharge abstract has no imaging or labs, so the state can only be S4; then list the conditions for the 8 action families.`) };
@@ -310,10 +314,9 @@ ${t.admissions.map(a => cls(a.classes)).join(' → ')}
     }
     if (kind === 'chronology' || kind === 'cost') return { ...base, content: chronology(pid), thinking: L('按时间整理全部住院和治疗类别。',
       'Lay out all admissions and treatment classes in time order.') };
-    return { ...base, thinking: L('演示版没有接入模型，只能给出预设回答；这里返回这个节点的简报。',
-      'The demo has no model connected and can only give preset answers; returning the brief for this node.'),
-      content: L('*演示版没有接入模型，不能理解自由提问。下面是这个节点的预设简报；真实工作台会由 Claude 或 OpenAI 回答你的问题。*\n\n',
-        '*The demo has no model connected and cannot understand free questions. Below is the preset brief for this node; in the real workbench, Claude or OpenAI answers your question.*\n\n') + brief(nd) };
+    return { ...base, thinking: L('离线模式：返回这个节点的简报。', 'Offline mode: returning the brief for this node.'),
+      content: L('*离线模式只回答固定的几类问题（简报、缺失信息、规则提示、队列参考）。下面是这个节点的简报。*\n\n',
+        '*Offline mode answers a fixed set of questions (brief, missing information, rule alerts, cohort reference). Below is the brief for this node.*\n\n') + brief(nd) };
   }
   function chatStream(req) {
     const mode = req.mode === 'full' && req.node_id ? 'hindsight' : req.mode || 'locked';
@@ -321,7 +324,7 @@ ${t.admissions.map(a => cls(a.classes)).join(' → ')}
     let chat = req.chat_id ? list.find(c => c.chat_id === req.chat_id) : null;
     if (!chat) {
       chat = { chat_id: 'C-' + Math.random().toString(16).slice(2, 14).padEnd(24, '0'), patient_id: pid, node_id: req.node_id || '', mode,
-        model: 'demo-script', provider: 'demo', created_at: now(), updated_at: now(), messages: [] };
+        model: 'offline', provider: 'offline', created_at: now(), updated_at: now(), messages: [] };
     }
     const plan = answer(req, mode);
     const encoder = new TextEncoder();
@@ -330,8 +333,8 @@ ${t.admissions.map(a => cls(a.classes)).join(' → ')}
       async start(controller) {
         const send = ev => controller.enqueue(encoder.encode(JSON.stringify(ev) + '\n'));
         const stopped = () => S.stopped.has(req.stream_id);
-        send({ type: 'meta', chat_id: chat.chat_id, stream_id: req.stream_id, provider: 'demo', model: plan.model, mode, node_id: chat.node_id,
-          destination: L('本页（不联网）', 'This page (offline)'), context_chars: 0, user: req.message });
+        send({ type: 'meta', chat_id: chat.chat_id, stream_id: req.stream_id, provider: 'offline', model: plan.model, mode, node_id: chat.node_id,
+          destination: L('本机（不联网）', 'This computer (offline)'), context_chars: 0, user: req.message });
         await wait(600);
         for (let i = 0; i < plan.thinking.length; i += 4) { if (stopped()) { send({ type: 'stopped' }); controller.close(); return; } send({ type: 'thinking', delta: plan.thinking.slice(i, i + 4) }); await wait(28); }
         for (const [n, t] of plan.tools.entries()) {
@@ -358,7 +361,7 @@ ${t.admissions.map(a => cls(a.classes)).join(' → ')}
       if ((init.method || 'GET').toUpperCase() === 'POST') return await post(url, JSON.parse(init.body || '{}'));
       return await get(url);
     } catch (err) {
-      return json({ error: L('演示数据读取失败：', 'Could not read the demo data: ') + err.message }, 500);
+      return json({ error: L('数据读取失败：', 'Could not read the data: ') + err.message }, 500);
     }
   };
 })();
