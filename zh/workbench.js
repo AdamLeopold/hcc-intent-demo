@@ -42,14 +42,14 @@
     async get(path, params = {}) {
       const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ''));
       const res = await fetch(path + (q.toString() ? '?' + q : ''), { headers: { Accept: 'application/json' } });
-      const data = await res.json().catch(() => ({ error: 'The server returned a response that could not be parsed' }));
-      if (!res.ok) throw new Error(data.error || 'Request failed ' + res.status);
+      const data = await res.json().catch(() => ({ error: '服务器返回了无法解析的内容' }));
+      if (!res.ok) throw new Error(data.error || '请求失败 ' + res.status);
       return data;
     },
     async post(path, body) {
       const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-HCC-Token': TOKEN }, body: JSON.stringify(body) });
-      const data = await res.json().catch(() => ({ error: 'The server returned a response that could not be parsed' }));
-      if (!res.ok) throw new Error(data.error || 'Request failed ' + res.status);
+      const data = await res.json().catch(() => ({ error: '服务器返回了无法解析的内容' }));
+      if (!res.ok) throw new Error(data.error || '请求失败 ' + res.status);
       return data;
     },
   };
@@ -68,31 +68,31 @@
   const CLASS = {
     TACE: { name: 'TACE', color: 'var(--c-tace)', lane: 0 },
     HAIC: { name: 'HAIC', color: 'var(--c-local)', lane: 0 },
-    RESECTION: { name: 'Resection', color: 'var(--c-curative)', lane: 1 },
-    ABLATION: { name: 'Ablation', color: 'var(--c-curative)', lane: 1 },
-    TRANSPLANT: { name: 'Transplant', color: 'var(--c-curative)', lane: 1 },
-    SYSTEMIC: { name: 'Systemic therapy', color: 'var(--c-systemic)', lane: 2 },
-    RADIATION: { name: 'Radiotherapy', color: 'var(--c-local)', lane: 2 },
+    RESECTION: { name: '切除', color: 'var(--c-curative)', lane: 1 },
+    ABLATION: { name: '消融', color: 'var(--c-curative)', lane: 1 },
+    TRANSPLANT: { name: '移植', color: 'var(--c-curative)', lane: 1 },
+    SYSTEMIC: { name: '系统治疗', color: 'var(--c-systemic)', lane: 2 },
+    RADIATION: { name: '放疗', color: 'var(--c-local)', lane: 2 },
   };
-  const LANES = ['Interventional', 'Curative', 'Systemic / RT', 'Other admissions'];
-  const JUDGE = [['acceptable', 'Acceptable'], ['conditional', 'Conditional'], ['unacceptable', 'Not acceptable'], ['unknown', 'Cannot judge']];
-  const TOOL_NAMES = { get_admission: 'View admission', search_records: 'Search records', cohort_reference: 'Cohort reference', get_followup: 'Follow-up course' };
+  const LANES = ['介入', '根治性', '系统 / 放疗', '其他住院'];
+  const JUDGE = [['acceptable', '可接受'], ['conditional', '有条件'], ['unacceptable', '不可接受'], ['unknown', '无法判断']];
+  const TOOL_NAMES = { get_admission: '查看住院', search_records: '检索记录', cohort_reference: '队列参考', get_followup: '后续病程' };
   const PROMPTS = {
     locked: [
-      ['Node brief', 'Write a brief for this node: (1) a time-ordered summary of the course visible at the time, citing admission IDs; (2) the Layer A state leaning (S1–S4) and its basis, choosing S4 and listing what is missing if information is insufficient; (3) for each of the 8 Layer B action families, the conditions it needs and the information to check; (4) the most important missing information and the suggested time to reassess.'],
-      ['What is missing', 'To decide at this node, which missing information matters most? Rank it by importance and explain how each item would change the judgement.'],
-      ['Explain rule alerts', 'Explain each rule alert triggered at this node, and its limits when only the discharge abstract is available.'],
-      ['Cohort reference', 'Use the cohort reference to show how often similar nodes in this hospital actually switched treatment within 180 days, and what this number can and cannot tell us.'],
+      ['节点简报', '请生成这个节点的简报：①当时可见病程摘要（按时间，引用住院编号）；②A 层状态倾向（S1–S4）及依据，信息不足就选 S4 并列出缺什么；③B 层 8 个行动族各自需要满足的条件和需要核对的信息；④最关键的缺失信息与建议的复评时机。'],
+      ['缺什么信息', '要对这个节点做决定，最缺哪些信息？按重要性排序，并说明每一项会怎样改变判断。'],
+      ['规则提示解读', '逐条解释这个节点触发的规则提示，以及它们在只有病案首页时的局限。'],
+      ['队列参考', '调用队列参考，说明同类节点在本院 180 天内实际发生转换的频率，以及这个数字能说明什么、不能说明什么。'],
     ],
     hindsight: [
-      ['Then vs. later', 'Compare what was visible at the node with the actual later course: which outcomes had signs at the time, and which could only be known in hindsight?'],
-      ['Outcome', 'Use the follow-up tool to summarise what actually happened within 180 days after node discharge, and explain that this is a behaviour-anchored outcome.'],
-      ['Review the decision', 'Using only what was visible at the node, assess whether continuing TACE was reasonable at the time; then explain separately how hindsight would change that assessment, and why hindsight must not be used to judge the decision made then.'],
+      ['当时 vs 事后', '对比节点当时可见的信息和之后的真实病程：哪些结局在当时有迹可循，哪些只有事后才知道？'],
+      ['结局解读', '调用后续病程工具，概括节点出院后 180 天内实际发生了什么，并说明这是行为锚定的结局。'],
+      ['回看决策', '只用节点当时可见的信息，评价当时继续 TACE 的合理性；再单独说明事后信息会怎样改变这个评价，以及为什么不能用事后信息评判当时的决策。'],
     ],
     full: [
-      ['Course overview', 'Lay out all admissions of this patient in time order, and summarise the treatment sequence and key turning points.'],
-      ['Repeat-TACE nodes', 'List the repeat-TACE nodes of this patient and the treatment changes before and after each.'],
-      ['Cost overview', 'Summarise how costs changed across the admissions of this patient, and point out the most expensive admissions and their treatment classes.'],
+      ['病程梳理', '按时间梳理这位患者的全部住院，概括治疗序列和关键转折点。'],
+      ['重复 TACE 节点', '列出这位患者的重复 TACE 节点，并说明每个节点前后的治疗变化。'],
+      ['费用概览', '概括这位患者各次住院的费用变化，指出费用最高的几次住院及其治疗类别。'],
     ],
   };
 
@@ -105,10 +105,10 @@
   };
 
   // ---------- formatting ----------
-  const fmtInt = v => (v == null ? '—' : Number(v).toLocaleString('en-US'));
-  const money = v => (!v ? '—' : v >= 10000 ? `¥${Math.round(v).toLocaleString('en-US')}` : `¥${Math.round(v).toLocaleString('en-US')}`);
-  const dayText = d => (d == null ? 'Invalid time' : `Day ${d}`);
-  const classNames = cs => (cs && cs.length ? cs.map(c => (CLASS[c] ? CLASS[c].name : c)).join(', ') : 'Unrecognised treatment');
+  const fmtInt = v => (v == null ? '—' : Number(v).toLocaleString('zh-CN'));
+  const money = v => (!v ? '—' : v >= 10000 ? `¥${(v / 10000).toFixed(1)} 万` : `¥${Math.round(v).toLocaleString('zh-CN')}`);
+  const dayText = d => (d == null ? '时间无效' : `第 ${d} 天`);
+  const classNames = cs => (cs && cs.length ? cs.map(c => (CLASS[c] ? CLASS[c].name : c)).join('、') : '未识别治疗');
   function classTags(classes) {
     return (classes || []).map(c => h('span', { class: 'ct', text: CLASS[c] ? CLASS[c].name : c, style: { background: CLASS[c] ? CLASS[c].color : 'var(--c-other)' } }));
   }
@@ -124,7 +124,7 @@
     const order = ['auto', 'light', 'dark'];
     const next = order[(order.indexOf(loadPref('theme') || 'auto') + 1) % order.length];
     savePref('theme', next); applyTheme(next);
-    toast({ auto: 'Follow system theme', light: 'Light theme', dark: 'Dark theme' }[next]);
+    toast({ auto: '跟随系统主题', light: '浅色主题', dark: '深色主题' }[next]);
     if (S.timeline) renderTimeline();
   }
 
@@ -133,18 +133,18 @@
     const st = S.status;
     const chips = $('#statusChips');
     fill(chips, 
-      h('span', { class: 'chip' }, 'HCC repeat-TACE nodes ', h('b', { text: fmtInt(st.nodes_hcc) })),
-      h('span', { class: 'chip' }, 'Patients with nodes ', h('b', { text: fmtInt(st.patients_with_nodes) })),
+      h('span', { class: 'chip' }, 'HCC 重复 TACE 节点 ', h('b', { text: fmtInt(st.nodes_hcc) })),
+      h('span', { class: 'chip' }, '有节点的患者 ', h('b', { text: fmtInt(st.patients_with_nodes) })),
       st.manifest_loaded
-        ? h('span', { class: 'chip ok', title: 'The sealed final test set is not shown and is excluded from the cohort reference and AI chat' }, `Sealed final set: ${st.sealed_hidden} patients hidden`)
-        : h('span', { class: 'chip warn', title: 'Start the server with --cohort-manifest to give the split list' }, 'Split list not found: sealed patients cannot be excluded'),
+        ? h('span', { class: 'chip ok', title: '封存的 final 测试集不显示、不进入队列参考和 AI 对话' }, `封存 final ${st.sealed_hidden} 人已隐藏`)
+        : h('span', { class: 'chip warn', title: '启动时用 --cohort-manifest 指定分组清单' }, '未找到分组清单：封存患者无法排除'),
     );
   }
   function renderWelcomeNotes() {
     const box = $('#welcomeNotes');
-    box.replaceChildren(h('h4', { text: 'Study status (summaries only)' }),
+    box.replaceChildren(h('h4', { text: '研究现状（只含汇总）' }),
       ...S.status.research_notes.map(n => h('div', { class: 'note-line' }, h('b', { text: n.id }), h('span', { text: n.text }))),
-      h('div', { class: 'note-line' }, h('b', { text: 'Definition' }), h('span', { text: S.status.caliber_note })));
+      h('div', { class: 'note-line' }, h('b', { text: '口径' }), h('span', { text: S.status.caliber_note })));
   }
 
   // ---------- patients ----------
@@ -159,26 +159,26 @@
   }
   function renderPatients() {
     $$('#scopeSwitch button').forEach(b => b.classList.toggle('active', b.dataset.scope === S.scope));
-    $('#patientTotal').textContent = `${fmtInt(S.total)} patients`;
+    $('#patientTotal').textContent = `${fmtInt(S.total)} 位患者`;
     const list = $('#patientList');
     list.replaceChildren();
-    if (!S.patients.length) { list.append(h('div', { class: 'empty', text: 'No matching patients' })); return; }
+    if (!S.patients.length) { list.append(h('div', { class: 'empty', text: '没有符合条件的患者' })); return; }
     for (const p of S.patients) {
-      const named = p.name && p.name !== 'Name not recorded';
+      const named = p.name && p.name !== '姓名未录';
       list.append(h('button', { class: 'patient-item' + (p.patient_id === S.pid ? ' active' : ''), role: 'option',
-        'aria-selected': p.patient_id === S.pid ? 'true' : 'false', 'aria-label': `${p.patient_id}, ${p.nodes} nodes`, onclick: () => openPatient(p.patient_id) },
-        h('div', { class: 'row' }, h('span', { class: 'pid', text: named ? p.display_name : p.patient_id }), p.death ? h('span', { class: 'tag danger', text: 'In-hospital death' }) : null),
+        'aria-selected': p.patient_id === S.pid ? 'true' : 'false', 'aria-label': `${p.patient_id}，${p.nodes} 个节点`, onclick: () => openPatient(p.patient_id) },
+        h('div', { class: 'row' }, h('span', { class: 'pid', text: named ? p.display_name : p.patient_id }), p.death ? h('span', { class: 'tag danger', text: '院内死亡' }) : null),
         h('div', { class: 'meta' },
           h('span', { class: 'tag' + (p.disease === 'HCC' ? ' accent' : ''), text: p.disease_name }),
-          p.nodes ? h('span', { class: 'tag violet', text: `◆ ${p.nodes} nodes` }) : null,
-          h('span', { text: `${p.admissions} admissions` }),
-          p.marked_nodes ? h('span', { class: 'tag', text: `✓ Recorded ${p.marked_nodes}` }) : null,
-          p.latest_activity ? h('span', { text: 'Last ' + p.latest_activity.slice(0, 7) }) : null)));
+          p.nodes ? h('span', { class: 'tag violet', text: `◆ ${p.nodes} 个节点` }) : null,
+          h('span', { text: `${p.admissions} 次住院` }),
+          p.marked_nodes ? h('span', { class: 'tag', text: `✓ 已记录 ${p.marked_nodes}` }) : null,
+          p.latest_activity ? h('span', { text: '末次 ' + p.latest_activity.slice(0, 7) }) : null)));
     }
   }
 
   async function openPatient(pid) {
-    if (S.chat.streaming) { toast('Stop the current chat first'); return; }
+    if (S.chat.streaming) { toast('请先停止当前对话'); return; }
     S.pid = pid; mapReset(); renderPatients();
     document.body.classList.remove('show-patients');
     try { S.patient = await api.get('/api/v2/patient', { id: pid }); } catch (e) { toast(e.message); return; }
@@ -203,13 +203,13 @@
   }
 
   function selectNode(nodeId) {
-    if (S.chat.streaming) { toast('Stop the current chat first'); return; }
+    if (S.chat.streaming) { toast('请先停止当前对话'); return; }
     S.nodeId = nodeId; S.mode = nodeId ? 'locked' : 'full';
     if (!nodeId && ['alayer', 'blayer', 'after'].includes(S.tab)) S.tab = 'visible';
     loadView();
   }
   function setMode(mode) {
-    if (S.chat.streaming) { toast('Stop the current chat first'); return; }
+    if (S.chat.streaming) { toast('请先停止当前对话'); return; }
     if (mode === 'locked' && !S.nodeId) return;
     if (mode === S.mode) return;
     S.mode = mode; loadView();
@@ -218,29 +218,29 @@
   // ---------- case header ----------
   function renderCaseHead() {
     const p = S.patient.patient, sm = S.patient.summary;
-    $('#caseEyebrow').textContent = p.name && p.name !== 'Name not recorded' ? p.display_name : 'Patient research ID';
+    $('#caseEyebrow').textContent = p.name && p.name !== '姓名未录' ? p.display_name : '患者研究编号';
     $('#caseTitle').textContent = p.patient_id;
     fill($('#caseBadges'), 
       h('span', { class: 'tag' + (p.disease === 'HCC' ? ' accent' : ''), text: p.disease_name }),
-      h('span', { class: 'tag', text: `${sm.sex} · age ${sm.age_at_first ?? '—'} at first admission` }),
-      sm.death ? h('span', { class: 'tag danger', text: 'In-hospital death recorded' }) : null,
-      p.identity_conflict ? h('span', { class: 'tag warn', text: 'Conflicting identity fields' }) : null,
-      p.split ? h('span', { class: 'tag', text: 'Split ' + p.split }) : null);
+      h('span', { class: 'tag', text: `${sm.sex} · 首次入院 ${sm.age_at_first ?? '—'} 岁` }),
+      sm.death ? h('span', { class: 'tag danger', text: '有院内死亡记录' }) : null,
+      p.identity_conflict ? h('span', { class: 'tag warn', text: '身份字段冲突' }) : null,
+      p.split ? h('span', { class: 'tag', text: '分组 ' + p.split }) : null);
     $('#caseStats').replaceChildren(
-      stat('Admissions', fmtInt(S.patient.admissions)), stat('TACE admissions', fmtInt(sm.tace_admissions)),
-      stat('Repeat-TACE nodes', fmtInt(S.patient.nodes.length)), stat('Total cost', money(sm.total_cost)));
+      stat('住院', fmtInt(S.patient.admissions)), stat('TACE 住院', fmtInt(sm.tace_admissions)),
+      stat('重复 TACE 节点', fmtInt(S.patient.nodes.length)), stat('总费用', money(sm.total_cost)));
   }
   const stat = (label, value) => h('div', { class: 'stat' }, h('small', { text: label }), h('b', { text: value }));
 
   function renderNodeStrip() {
     const strip = $('#nodeStrip');
-    fill(strip, h('span', { class: 'label', text: 'Nodes' }));
-    if (!S.patient.nodes.length) strip.append(h('span', { class: 'hint', text: 'No repeat-TACE node; only the full course is available' }));
+    fill(strip, h('span', { class: 'label', text: '节点' }));
+    if (!S.patient.nodes.length) strip.append(h('span', { class: 'hint', text: '没有重复 TACE 节点，只能看全病程' }));
     for (const n of S.patient.nodes) {
-      strip.append(h('button', { class: 'node-chip' + (n.node_id === S.nodeId ? ' active' : ''), title: `${n.ref} · TACE admission #${n.k}`, onclick: () => selectNode(n.node_id) },
-        `◆ #${n.k}`, n.marked ? h('span', { class: 'done', text: '✓' }) : null));
+      strip.append(h('button', { class: 'node-chip' + (n.node_id === S.nodeId ? ' active' : ''), title: `${n.ref} · 第 ${n.k} 次 TACE 入院`, onclick: () => selectNode(n.node_id) },
+        `◆ 第 ${n.k} 次`, n.marked ? h('span', { class: 'done', text: '✓' }) : null));
     }
-    if (S.nodeId) strip.append(h('button', { class: 'node-chip', onclick: () => selectNode(''), text: 'Patient overview' }));
+    if (S.nodeId) strip.append(h('button', { class: 'node-chip', onclick: () => selectNode(''), text: '患者总览' }));
   }
 
   function renderMode() {
@@ -251,13 +251,13 @@
     const hint = $('#modeHint'), n = currentNode();
     if (S.mode === 'locked' && n) {
       hint.className = 'mode-hint';
-      hint.textContent = `Time lock: Day 0 = TACE admission #${n.k}. Only the ${S.node ? S.node.visible.length : 0} admissions discharged before it are shown; this admission and all later ones are hidden.`;
+      hint.textContent = `时间锁：第 0 天 = 第 ${n.k} 次 TACE 入院。只显示之前已出院的 ${S.node ? S.node.visible.length : 0} 次住院；本次住院和之后的住院都隐藏。`;
     } else if (n) {
       hint.className = 'mode-hint warn';
-      hint.textContent = 'Full course (hindsight): showing the actual course after the node, logged as “follow-up course viewed”; Layer B records saved from now on carry this flag.';
+      hint.textContent = '全病程（后见之明）：显示节点之后的真实病程，已记录为“查看过后续病程”；之后保存的 B 层记录会带上这个标记。';
     } else {
       hint.className = 'mode-hint';
-      hint.textContent = 'Full course: Day 0 = first admission. Click a ◆ node to enter the time-locked view.';
+      hint.textContent = '全病程：第 0 天 = 首次入院。点 ◆ 节点进入时间锁视图。';
     }
   }
 
@@ -280,7 +280,7 @@
     const pad = Math.max(8, (max - min) * 0.025);
     min -= pad; max += pad;
     const x = d => left + ((d - min) / (max - min)) * (width - left - right);
-    const svg = s('svg', { viewBox: `0 0 ${width} ${height}`, height, role: 'img', 'aria-label': 'Admission timeline' });
+    const svg = s('svg', { viewBox: `0 0 ${width} ${height}`, height, role: 'img', 'aria-label': '住院时间轴' });
     const pat = s('pattern', { id: 'hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' },
       s('rect', { width: 8, height: 8, style: { fill: 'var(--hatch)' } }),
       s('line', { x1: 0, y1: 0, x2: 0, y2: 8, 'stroke-width': 3, style: { stroke: 'var(--border)' } }));
@@ -295,13 +295,13 @@
     for (let d = Math.ceil(min / step) * step; d <= max; d += step) {
       const xx = x(d);
       axis.append(s('line', { x1: xx, x2: xx, y1: top, y2: top + lanes * laneH }),
-        s('text', { x: xx, y: top + lanes * laneH + 16, 'text-anchor': 'middle', text: d === 0 ? '0' : `${d > 0 ? '+' : ''}${d} d` }));
+        s('text', { x: xx, y: top + lanes * laneH + 16, 'text-anchor': 'middle', text: d === 0 ? '0' : `${d > 0 ? '+' : ''}${d} 天` }));
     }
     svg.append(axis);
     if (t.mode === 'locked') {
       const x0 = x(0), w = Math.max(0, width - right - x0);
       svg.append(s('rect', { class: 'hidden-zone', x: x0, y: top, width: w, height: lanes * laneH, rx: 4 }),
-        s('text', { class: 'hidden-label', x: x0 + w / 2, y: top + (lanes * laneH) / 2 + 4, 'text-anchor': 'middle', text: w > 120 ? 'Time lock · later hidden' : 'Hidden' }));
+        s('text', { class: 'hidden-label', x: x0 + w / 2, y: top + (lanes * laneH) / 2 + 4, 'text-anchor': 'middle', text: w > 120 ? '时间锁 · 之后隐藏' : '已隐藏' }));
     }
     const marks = [];
     for (const a of adms) {
@@ -340,18 +340,18 @@
       const g = s('g', { class: 'node-mark', onclick: () => m.nodeId !== S.nodeId && selectNode(m.nodeId) },
         s('polygon', { points: `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`, style: { fill: current ? 'var(--accent)' : 'var(--c-tace)', opacity: current ? 1 : 0.75 } }),
         s('text', { x: cx, y: cy + 3.5, 'text-anchor': 'middle', text: String(m.k) }));
-      g.append(s('title', { text: `TACE admission #${m.k}${current ? ' (current node)' : ', click to switch'}` }));
+      g.append(s('title', { text: `第 ${m.k} 次 TACE 入院${current ? '（当前节点）' : '，点击切换'}` }));
       svg.append(g);
-      if (current) svg.append(s('text', { class: 'zero-label', x: cx + 12, y: cy + 4, text: `Day 0 · TACE admission #${m.k}` }));
+      if (current) svg.append(s('text', { class: 'zero-label', x: cx + 12, y: cy + 4, text: `第 0 天 · 第 ${m.k} 次 TACE 入院` }));
     }
     box.append(svg);
   }
   function showTip(e, a) {
     const tip = $('#tooltip');
-    fill(tip, h('b', { text: `${a.ref} · admitted ${dayText(a.admission_day)}` }),
-      h('div', { text: `Stay ${a.los_days ?? '—'} d · ${classNames(a.classes)}` }),
+    fill(tip, h('b', { text: `${a.ref} · ${dayText(a.admission_day)}入院` }),
+      h('div', { text: `住院 ${a.los_days ?? '—'} 天 · ${classNames(a.classes)}` }),
       a.main_diagnosis ? h('div', { text: a.main_diagnosis }) : null,
-      a.death ? h('div', { text: 'In-hospital death' }) : null);
+      a.death ? h('div', { text: '院内死亡' }) : null);
     tip.hidden = false;
     const r = tip.getBoundingClientRect();
     tip.style.left = Math.min(window.innerWidth - r.width - 8, e.clientX + 14) + 'px';
@@ -359,9 +359,9 @@
   }
   function hideTip() { $('#tooltip').hidden = true; }
   function renderLegend() {
-    const items = [['TACE', 'var(--c-tace)'], ['HAIC / RT', 'var(--c-local)'], ['Systemic therapy', 'var(--c-systemic)'], ['Resection / ablation / transplant', 'var(--c-curative)'], ['Other admissions', 'var(--c-other)'], ['In-hospital death', 'var(--c-death)']];
+    const items = [['TACE', 'var(--c-tace)'], ['HAIC / 放疗', 'var(--c-local)'], ['系统治疗', 'var(--c-systemic)'], ['切除 / 消融 / 移植', 'var(--c-curative)'], ['其他住院', 'var(--c-other)'], ['院内死亡', 'var(--c-death)']];
     $('#timelineLegend').replaceChildren(...items.map(([n, c]) => h('span', {}, h('i', { style: { background: c } }), n)),
-      h('span', {}, '◆ Repeat-TACE node'), h('span', {}, 'Hatched: hidden by time lock'));
+      h('span', {}, '◆ 重复 TACE 节点'), h('span', {}, '斜线区：时间锁隐藏'));
   }
 
   // ---------- tabs ----------
@@ -371,7 +371,7 @@
       const tab = b.dataset.tab;
       b.disabled = ['alayer', 'blayer', 'after'].includes(tab) && !S.nodeId;
       b.classList.toggle('active', tab === S.tab);
-      if (tab === 'visible') b.textContent = S.mode === 'locked' ? 'Visible then' : 'All admissions';
+      if (tab === 'visible') b.textContent = S.mode === 'locked' ? '当时可见' : '全部住院';
     });
   }
   function renderTab() {
@@ -384,9 +384,9 @@
   function admCard(a, opts = {}) {
     return h('button', { class: 'adm-card', onclick: () => openAdmission(a.ref, opts) },
       h('div', {}, h('div', { class: 'ref', text: a.ref }), h('div', { class: 'when', text: dayText(a.admission_day) })),
-      h('div', { style: { minWidth: '0' } }, h('div', { class: 'dx', text: a.main_diagnosis || 'No primary diagnosis' }),
-        h('div', { class: 'class-tags' }, classTags(a.classes), h('span', { class: 'when', text: `Stay ${a.los_days ?? '—'} d` }),
-          a.death ? h('span', { class: 'tag danger', text: 'In-hospital death' }) : null)),
+      h('div', { style: { minWidth: '0' } }, h('div', { class: 'dx', text: a.main_diagnosis || '无主要诊断' }),
+        h('div', { class: 'class-tags' }, classTags(a.classes), h('span', { class: 'when', text: `住院 ${a.los_days ?? '—'} 天` }),
+          a.death ? h('span', { class: 'tag danger', text: '院内死亡' }) : null)),
       h('div', { class: 'right', text: a.total_cost ? money(a.total_cost) : '' }));
   }
 
@@ -395,43 +395,43 @@
     if (S.node && S.mode === 'locked') {
       const n = S.node.node;
       body.append(h('div', { class: 'lead' },
-        h('span', { class: 'tag accent', text: `TACE admission #${n.k} = Day 0` }), h('span', { class: 'tag', text: n.age_band || 'Age not recorded' }),
-        h('span', { class: 'tag', text: n.sex }), h('span', { class: 'tag', text: `${rows.length} admissions visible then` }),
-        S.node.excluded_invalid_time ? h('span', { class: 'tag warn', text: `${S.node.excluded_invalid_time} with invalid times excluded` }) : null,
-        n.overlap ? h('span', { class: 'tag warn', text: 'Overlaps another admission' }) : null,
-        n.followup_complete ? null : h('span', { class: 'tag', text: '180-day follow-up incomplete' })));
+        h('span', { class: 'tag accent', text: `第 ${n.k} 次 TACE 入院 = 第 0 天` }), h('span', { class: 'tag', text: n.age_band || '年龄未记录' }),
+        h('span', { class: 'tag', text: n.sex }), h('span', { class: 'tag', text: `当时可见 ${rows.length} 次住院` }),
+        S.node.excluded_invalid_time ? h('span', { class: 'tag warn', text: `${S.node.excluded_invalid_time} 次时间无效、未纳入` }) : null,
+        n.overlap ? h('span', { class: 'tag warn', text: '与其他住院时间重叠' }) : null,
+        n.followup_complete ? null : h('span', { class: 'tag', text: '180 天随访不完整' })));
     }
     const list = h('div', { class: 'adm-list' });
     rows.forEach(a => list.append(admCard(a)));
     body.append(list);
     if (S.mode === 'locked') {
       body.append(h('div', { class: 'callout', style: { marginTop: '12px' } },
-        'Diagnoses, procedures, costs and outcome of this admission (Day 0) are not in the time-locked view. Open “Follow-up course” if needed (this is logged as viewed).'));
+        '本次住院（第 0 天）的诊断、操作、费用和结局不在时间锁视图里。需要时到“后续病程”查看（会记录为已查看）。'));
     }
   }
 
   function tabA(body) {
     const f = S.node.features;
-    body.append(h('div', { class: 'section-title', text: 'Derived features (computed only from admissions visible then)' }));
+    body.append(h('div', { class: 'section-title', text: '派生特征（只用当时可见的住院计算）' }));
     const metric = (label, value, unit) => h('div', { class: 'metric' }, h('small', { text: label }), h('b', {}, value == null ? '—' : String(value), value == null ? null : h('span', { text: unit })));
     body.append(h('div', { class: 'metrics' },
-      metric('Prior TACE', f.n_prior_tace, ''), metric('Since last TACE discharge', f.days_since_last_tace, 'd'),
-      metric('Since first TACE', f.days_since_first_tace, 'd'), metric('Prior admissions', f.n_prior_adm, ''),
-      metric('Admissions in last 180 d', f.n_prior_adm_180d, ''), metric('Total prior inpatient days', f.prior_los_days, 'd')));
-    body.append(h('div', { class: 'section-title', text: 'Rule alerts (simple rules used as study baselines, not recommendations)' }));
+      metric('既往 TACE', f.n_prior_tace, '次'), metric('距上次 TACE 出院', f.days_since_last_tace, '天'),
+      metric('距首次 TACE', f.days_since_first_tace, '天'), metric('既往住院', f.n_prior_adm, '次'),
+      metric('近 180 天住院', f.n_prior_adm_180d, '次'), metric('既往住院总天数', f.prior_los_days, '天')));
+    body.append(h('div', { class: 'section-title', text: '规则提示（研究对照用的简单规则，不是建议）' }));
     body.append(h('div', { class: 'rules' }, ...S.node.rules.map(r => h('div', { class: 'rule' + (r.fired ? ' fired' : '') }, h('div', {}, h('b', { text: r.title }), ' ', h('span', { text: r.detail }))))));
     const c = S.node.cohort;
-    body.append(h('div', { class: 'section-title', text: 'Hospital cohort reference · LOCAL-COHORT' }));
+    body.append(h('div', { class: 'section-title', text: '本院队列参考 · LOCAL-COHORT' }));
     if (!c.available) {
       body.append(h('div', { class: 'callout warn', text: c.reason }));
     } else {
-      body.append(h('div', { class: 'cohort' }, ...c.groups.map(g => h('div', { class: 'cohort-row', title: `Curative ${g.curative} · new switch ${g.switch} · no readmission ${g.no_readmission}` },
+      body.append(h('div', { class: 'cohort' }, ...c.groups.map(g => h('div', { class: 'cohort-row', title: `根治性 ${g.curative} · 新的转换 ${g.switch} · 无再住院 ${g.no_readmission}` },
         h('span', { text: g.label }), h('div', { class: 'bar' }, h('i', { style: { width: ((g.rate || 0) * 100).toFixed(1) + '%' } })),
         h('span', { class: 'num', text: g.rate == null ? '—' : `${(g.rate * 100).toFixed(1)}% · ${fmtInt(g.nodes)}` })))));
-      body.append(h('div', { class: 'callout', style: { marginTop: '10px' } }, h('b', { text: 'Population: ' }), c.population, '. ', h('br'), h('b', { text: 'Outcome: ' }), c.outcome, '. ', h('br'), c.caution));
+      body.append(h('div', { class: 'callout', style: { marginTop: '10px' } }, h('b', { text: '统计对象：' }), c.population, '。', h('br'), h('b', { text: '结局：' }), c.outcome, '。', h('br'), c.caution));
     }
-    body.append(h('div', { class: 'section-title', text: 'What this layer can do for now' }));
-    body.append(h('div', { class: 'callout accent' }, ...S.status.research_notes.map(n => h('div', {}, h('b', { text: n.id + ': ' }), n.text))));
+    body.append(h('div', { class: 'section-title', text: '这一层目前能做到什么' }));
+    body.append(h('div', { class: 'callout accent' }, ...S.status.research_notes.map(n => h('div', {}, h('b', { text: n.id + '：' }), n.text))));
   }
 
   function tabB(body) {
@@ -441,13 +441,13 @@
       reassess: rec.reassess || '', note: rec.note || '', reviewer: rec.reviewer || loadPref('reviewer') || '',
     };
     const audit = S.node.audit;
-    body.append(h('div', { class: 'callout' }, 'This records the physician judgement at this node. It is a workbench note, not a formal reference standard; AI never pre-fills it. For formal pilot labelling use the T13 pilot pack (records from the time only, no outcomes, two independent raters).'));
+    body.append(h('div', { class: 'callout' }, '这里记录医生对这个节点的判断。它是工作台记录，不是正式参考标准；AI 不会预填这里。正式试标请用 T13 试标包（只看当时资料、不看结局、两人独立）。'));
     body.append(h('div', { class: 'audit', style: { marginTop: '10px' } },
-      audit.full_course_viewed ? h('span', { class: 'tag warn', text: 'Follow-up course viewed' }) : h('span', { class: 'tag accent', text: 'Follow-up course not viewed' }),
-      audit.ai_consulted ? h('span', { class: 'tag violet', text: `AI consulted (${audit.chats} chats)` }) : h('span', { class: 'tag', text: 'AI not consulted' }),
-      rec.saved_at ? h('span', { class: 'tag', text: 'Last saved ' + new Date(rec.saved_at).toLocaleString('en-US') }) : null));
+      audit.full_course_viewed ? h('span', { class: 'tag warn', text: '已查看过后续病程' }) : h('span', { class: 'tag accent', text: '尚未查看后续病程' }),
+      audit.ai_consulted ? h('span', { class: 'tag violet', text: `已咨询 AI（${audit.chats} 段对话）` }) : h('span', { class: 'tag', text: '尚未咨询 AI' }),
+      rec.saved_at ? h('span', { class: 'tag', text: '上次保存 ' + new Date(rec.saved_at).toLocaleString('zh-CN') }) : null));
 
-    body.append(h('div', { class: 'section-title', text: 'Layer A state (physician judgement)' }));
+    body.append(h('div', { class: 'section-title', text: 'A 层状态（医生判断）' }));
     const states = h('div', { class: 'state-options' });
     const paintStates = () => $$('.state-option', states).forEach(b => b.classList.toggle('active', b.dataset.v === draft.state));
     for (const st of S.status.states) {
@@ -456,7 +456,7 @@
     }
     body.append(states); paintStates();
 
-    body.append(h('div', { class: 'section-title', text: 'Layer B action families: acceptable / conditional / not acceptable / cannot judge' }));
+    body.append(h('div', { class: 'section-title', text: 'B 层行动族：可接受 / 有条件 / 不可接受 / 无法判断' }));
     const table = h('div', { class: 'family-table' });
     for (const fam of S.status.families) {
       const item = draft.families[fam.id] || (draft.families[fam.id] = { judgement: '', condition: '' });
@@ -465,18 +465,18 @@
       JUDGE.forEach(([v, label]) => seg.append(h('button', { type: 'button', dataset: { v }, text: label, onclick: () => { item.judgement = item.judgement === v ? '' : v; paint(); } })));
       paint();
       table.append(h('div', { class: 'family-row' }, h('span', { class: 'name', text: fam.name }), seg,
-        h('input', { class: 'input', placeholder: 'Conditions or reasons (optional)', value: item.condition || '', oninput: e => { item.condition = e.target.value; } })));
+        h('input', { class: 'input', placeholder: '条件或理由（可选）', value: item.condition || '', oninput: e => { item.condition = e.target.value; } })));
     }
     body.append(table);
     const field = (label, key, multiline, placeholder) => h('div', { class: 'field' }, h('label', { text: label }),
       multiline ? h('textarea', { class: 'input', placeholder, oninput: e => { draft[key] = e.target.value; } }, draft[key])
         : h('input', { class: 'input', placeholder, value: draft[key], oninput: e => { draft[key] = e.target.value; } }));
     body.append(h('div', { class: 'grid-2' },
-      h('div', {}, field('Key missing information', 'missing', true, 'e.g. latest contrast CT/MRI response assessment, AFP, Child-Pugh'), field('Suggested time to reassess', 'reassess', false, 'e.g. repeat imaging in 4–6 weeks')),
-      h('div', {}, field('Notes', 'note', true, 'Other thoughts'), field('Recorded by', 'reviewer', false, 'Initials or code'))));
-    const btn = h('button', { class: 'primary-btn', text: 'Save record', onclick: () => saveMarks(draft, btn) });
+      h('div', {}, field('缺失的关键信息', 'missing', true, '例如：最近一次增强 CT/MRI 疗效评价、AFP、Child-Pugh'), field('建议复评时机', 'reassess', false, '例如：4–6 周后影像复查')),
+      h('div', {}, field('备注', 'note', true, '其他想法'), field('记录人', 'reviewer', false, '姓名缩写或代号'))));
+    const btn = h('button', { class: 'primary-btn', text: '保存记录', onclick: () => saveMarks(draft, btn) });
     body.append(h('div', { class: 'form-foot' },
-      h('small', { text: 'Saving also records whether the follow-up course was viewed and whether AI was consulted. Dates are converted to relative days automatically.' }), btn));
+      h('small', { text: '保存时会一并记录“是否已查看后续病程”和“是否已咨询 AI”。日期会自动换算为相对天数。' }), btn));
   }
   async function saveMarks(draft, btn) {
     btn.disabled = true;
@@ -487,30 +487,30 @@
       S.node.record = res.record; S.node.marks_revision = res.revision;
       savePref('reviewer', draft.reviewer);
       const n = currentNode(); if (n) n.marked = true;
-      renderNodeStrip(); renderTab(); toast('Saved');
+      renderNodeStrip(); renderTab(); toast('已保存');
     } catch (e) { toast(e.message); } finally { btn.disabled = false; }
   }
 
   function tabAfter(body) {
     if (!S.hindsight) {
-      body.append(h('div', { class: 'lock-card' }, h('h3', { text: 'The actual course after the node is hidden' }),
-        h('p', { text: 'Viewing it is logged as “follow-up course viewed”. If Layer B is not filled in yet, do that first so hindsight does not bias the judgement.' }),
-        h('button', { class: 'primary-btn', text: 'Show follow-up course', onclick: revealAfter })));
+      body.append(h('div', { class: 'lock-card' }, h('h3', { text: '节点之后的真实病程已隐藏' }),
+        h('p', { text: '查看后会记录为“已查看后续病程”。如果还没填写 B 层判断，建议先填写再查看，避免后见之明影响判断。' }),
+        h('button', { class: 'primary-btn', text: '显示后续病程', onclick: revealAfter })));
       return;
     }
     const hs = S.hindsight, w = hs.within_window;
     body.append(h('div', { class: 'callout ' + (w.positive ? 'warn' : 'accent') },
-      h('b', { text: `Within ${hs.window_days} days after node discharge: ` }),
-      `${w.admissions} readmissions; curative treatment: ${w.curative.length ? classNames(w.curative) : 'none'}; new switch treatment: ${w.new_switch.length ? classNames(w.new_switch) : 'none'}; in-hospital death: ${w.death ? 'yes' : 'no'}.`,
+      h('b', { text: `节点出院后 ${hs.window_days} 天内：` }),
+      `再住院 ${w.admissions} 次；根治性治疗：${w.curative.length ? classNames(w.curative) : '无'}；新的转换治疗：${w.new_switch.length ? classNames(w.new_switch) : '无'}；院内死亡：${w.death ? '是' : '否'}。`,
       h('br'), hs.label_note,
-      hs.no_readmission ? h('div', { text: 'No later readmission on record (this does not mean the disease was stable).' }) : null,
-      hs.followup_complete ? null : h('div', { text: '180-day follow-up incomplete (node discharged after 2025-07-04).' })));
-    body.append(h('div', { class: 'section-title', text: 'This node admission (Day 0)' }));
+      hs.no_readmission ? h('div', { text: '之后没有再住院记录（不等于病情稳定）。' }) : null,
+      hs.followup_complete ? null : h('div', { text: '180 天随访不完整（节点出院晚于 2025-07-04）。' })));
+    body.append(h('div', { class: 'section-title', text: '本次节点住院（第 0 天）' }));
     detailBlocks(body, hs.node_admission);
-    body.append(h('div', { class: 'section-title', text: `Later admissions (${hs.future.length})` }));
+    body.append(h('div', { class: 'section-title', text: `之后的住院（${hs.future.length} 次）` }));
     const list = h('div', { class: 'adm-list' });
     hs.future.forEach(a => list.append(admCard(a, { mode: 'full' })));
-    if (!hs.future.length) list.append(h('div', { class: 'empty', text: 'No later admissions on record' }));
+    if (!hs.future.length) list.append(h('div', { class: 'empty', text: '没有之后的住院记录' }));
     body.append(list);
   }
   async function revealAfter() {
@@ -522,27 +522,27 @@
   }
 
   function tabDetail(body) {
-    if (!S.detail) { body.append(h('div', { class: 'empty', text: 'Click an admission on the timeline or in the list to see its discharge-abstract details.' })); return; }
+    if (!S.detail) { body.append(h('div', { class: 'empty', text: '在时间轴或列表中点选一次住院，查看首页明细。' })); return; }
     detailBlocks(body, S.detail);
   }
   function detailBlocks(body, d) {
-    body.append(h('div', { class: 'lead' }, h('span', { class: 'tag accent', text: d.ref }), h('span', { class: 'tag', text: dayText(d.admission_day) + ' admission' }),
-      h('span', { class: 'tag', text: `Stay ${d.los_days ?? '—'} d` }), ...classTags(d.classes), d.death ? h('span', { class: 'tag danger', text: 'In-hospital death' }) : null));
-    const dx = h('table', { class: 'plain' }, h('thead', {}, h('tr', {}, h('th', { text: 'Type' }), h('th', { text: 'Diagnosis' }), h('th', { text: 'Code' }))),
+    body.append(h('div', { class: 'lead' }, h('span', { class: 'tag accent', text: d.ref }), h('span', { class: 'tag', text: dayText(d.admission_day) + '入院' }),
+      h('span', { class: 'tag', text: `住院 ${d.los_days ?? '—'} 天` }), ...classTags(d.classes), d.death ? h('span', { class: 'tag danger', text: '院内死亡' }) : null));
+    const dx = h('table', { class: 'plain' }, h('thead', {}, h('tr', {}, h('th', { text: '类型' }), h('th', { text: '诊断' }), h('th', { text: '编码' }))),
       h('tbody', {}, ...(d.diagnoses || []).map(x => h('tr', {}, h('td', { text: x.kind }), h('td', { text: x.name }), h('td', { class: 'code', text: x.code || '' })))));
-    const procs = h('table', { class: 'plain' }, h('thead', {}, h('tr', {}, h('th', { text: 'Procedure' }), h('th', { text: 'Time' }), h('th', { text: 'Class' }))),
+    const procs = h('table', { class: 'plain' }, h('thead', {}, h('tr', {}, h('th', { text: '手术操作' }), h('th', { text: '时间' }), h('th', { text: '类别' }))),
       h('tbody', {}, ...(d.procedures || []).map(p => h('tr', {}, h('td', { text: p.name }), h('td', { class: 'code', text: dayText(p.day) }), h('td', {}, classTags(p.classes))))));
     body.append(h('div', { class: 'grid-2' },
-      h('div', {}, h('div', { class: 'section-title', text: `Diagnoses (${(d.diagnoses || []).length})` }), (d.diagnoses || []).length ? dx : h('div', { class: 'empty', text: 'No diagnoses recorded' })),
-      h('div', {}, h('div', { class: 'section-title', text: `Procedures (${(d.procedures || []).length})` }), (d.procedures || []).length ? procs : h('div', { class: 'empty', text: 'No procedures recorded' }),
-        (d.procedure_summaries || []).length ? h('div', { class: 'callout', style: { marginTop: '8px' } }, h('b', { text: 'Hospital procedure names: ' }), d.procedure_summaries.join('; ')) : null)));
+      h('div', {}, h('div', { class: 'section-title', text: `诊断（${(d.diagnoses || []).length}）` }), (d.diagnoses || []).length ? dx : h('div', { class: 'empty', text: '无诊断记录' })),
+      h('div', {}, h('div', { class: 'section-title', text: `手术操作（${(d.procedures || []).length}）` }), (d.procedures || []).length ? procs : h('div', { class: 'empty', text: '无手术操作记录' }),
+        (d.procedure_summaries || []).length ? h('div', { class: 'callout', style: { marginTop: '8px' } }, h('b', { text: '院内手术名称：' }), d.procedure_summaries.join('；')) : null)));
     const fields = Object.entries(d.fields || {});
-    const costs = Object.entries((d.costs && d.costs.items) || {}).filter(([k]) => k !== 'Total cost');
+    const costs = Object.entries((d.costs && d.costs.items) || {}).filter(([k]) => k !== '总费用');
     const maxCost = Math.max(1, ...costs.map(([, v]) => v));
     body.append(h('div', { class: 'grid-2' },
-      h('div', {}, h('div', { class: 'section-title', text: 'Other abstract fields' }),
-        fields.length ? h('dl', { class: 'kv' }, ...fields.flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: String(v) })])) : h('div', { class: 'empty', text: 'None' })),
-      h('div', {}, h('div', { class: 'section-title', text: `Costs · total ${money(d.costs && d.costs.total)}${d.costs && d.costs.out_of_pocket ? ' · out of pocket ' + money(d.costs.out_of_pocket) : ''}` }),
+      h('div', {}, h('div', { class: 'section-title', text: '其他首页字段' }),
+        fields.length ? h('dl', { class: 'kv' }, ...fields.flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: String(v) })])) : h('div', { class: 'empty', text: '无' })),
+      h('div', {}, h('div', { class: 'section-title', text: `费用 · 总计 ${money(d.costs && d.costs.total)}${d.costs && d.costs.out_of_pocket ? ' · 自付 ' + money(d.costs.out_of_pocket) : ''}` }),
         ...costs.slice(0, 10).map(([k, v]) => h('div', { class: 'cost-row' }, h('span', { text: k }), h('div', { class: 'bar' }, h('i', { style: { width: (v / maxCost * 100).toFixed(1) + '%' } })), h('span', { class: 'num', text: money(v) }))))));
   }
   async function openAdmission(ref, opts = {}) {
@@ -560,7 +560,7 @@
   function renderProviders() {
     const a = S.status.assistant;
     const ps = $('#providerSelect');
-    ps.replaceChildren(...a.providers.map(p => h('option', { value: p.provider, text: p.label + (p.configured ? '' : ' (not configured)') })));
+    ps.replaceChildren(...a.providers.map(p => h('option', { value: p.provider, text: p.label + (p.configured ? '' : '（未配置）') })));
     const saved = loadPref('provider');
     const pick = a.providers.find(p => p.provider === saved && p.configured) || a.providers.find(p => p.configured) || a.providers[0];
     if (pick) ps.value = pick.provider;
@@ -580,34 +580,34 @@
     const ready = a.allow_export && p && p.configured;
     if (!a.allow_export) {
       b.className = 'export-banner off';
-      b.replaceChildren(h('b', { text: 'Sending case data is not authorised.' }), 'No case content is sent to cloud models. Once ethics approval, a personal-information impact assessment and a data-processing agreement are in place, start the server with ', h('code', { text: '--allow-sensitive-export' }), '.');
+      b.replaceChildren(h('b', { text: '未授权外发病例。' }), '当前不会把任何病例内容发给云端模型。具备伦理批准、个人信息影响评估和委托处理协议后，用 ', h('code', { text: '--allow-sensitive-export' }), ' 启动服务。');
     } else if (p && p.provider === 'demo') {
       b.className = 'export-banner on';
-      b.replaceChildren(h('b', { text: 'Demo script: ' }), 'answers are preset; no model is connected and nothing is sent.');
+      b.replaceChildren(h('b', { text: '演示脚本：' }), '回答是预设的，不连接任何模型，也不发送任何内容。');
     } else if (!p || !p.configured) {
       b.className = 'export-banner off';
-      b.replaceChildren(h('b', { text: `${p ? p.label : 'Cloud provider'} is not configured.` }), ' ', p ? p.setup : '');
+      b.replaceChildren(h('b', { text: `${p ? p.label : '云端接口'}未配置。` }), ' ', p ? p.setup : '');
     } else {
       b.className = 'export-banner on';
-      b.replaceChildren('De-identified context (research IDs, relative days, diagnoses and procedures) is sent to ', h('code', { text: p.destination || 'the cloud provider' }), '; no names, ID numbers or dates.');
+      b.replaceChildren('脱敏上下文（研究编号、相对天数、诊断与操作）会发送到 ', h('code', { text: p.destination || '云端接口' }), '；不含姓名、证件号和日期。');
     }
     dot.className = 'dot ' + (S.chat.streaming ? 'busy' : ready ? 'ok' : 'warn');
-    $('#assistantSub').textContent = p ? `${p.label} · streaming` : 'Cloud model · streaming';
+    $('#assistantSub').textContent = p ? `${p.label} · 流式` : '云端模型 · 流式';
     $('#sendBtn').disabled = !S.chat.streaming && !ready;
   }
 
   // ---------- assistant: conversation ----------
   function renderContextChip() {
     const chip = $('#contextChip'), n = currentNode(), mode = chatMode();
-    if (!S.pid) { chip.className = 'context-chip'; chip.textContent = 'No patient selected'; return; }
+    if (!S.pid) { chip.className = 'context-chip'; chip.textContent = '未选择患者'; return; }
     if (mode === 'locked') {
       const refs = S.node ? S.node.visible_refs : [];
       chip.className = 'context-chip locked';
-      chip.textContent = `🔒 Time lock · TACE node #${n.k} · visible ${refs.length ? refs[0] + '–' + refs[refs.length - 1] : 'none'}`;
+      chip.textContent = `🔒 时间锁 · 第 ${n.k} 次 TACE 节点 · 可见 ${refs.length ? refs[0] + '–' + refs[refs.length - 1] : '无'}`;
     } else if (mode === 'hindsight') {
-      chip.className = 'context-chip hindsight'; chip.textContent = `Hindsight · node #${n.k} · includes later course`;
+      chip.className = 'context-chip hindsight'; chip.textContent = `后见之明 · 第 ${n.k} 次节点 · 含之后病程`;
     } else {
-      chip.className = 'context-chip'; chip.textContent = 'Full course · all admissions';
+      chip.className = 'context-chip'; chip.textContent = '全病程 · 全部住院';
     }
   }
   function renderQuickPrompts() {
@@ -622,13 +622,13 @@
   }
   async function refreshHistory() {
     const sel = $('#historySelect');
-    sel.replaceChildren(h('option', { value: '', text: 'Past chats' }));
+    sel.replaceChildren(h('option', { value: '', text: '历史对话' }));
     if (!S.pid) return;
     try {
       const { chats } = await api.get('/api/v2/chats', { id: S.pid });
       const mode = chatMode();
       chats.filter(c => c.node_id === S.nodeId && c.mode === mode).forEach(c =>
-        sel.append(h('option', { value: c.chat_id, text: `${new Date(c.updated_at).toLocaleString('en-US', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${c.title || 'Chat'}` })));
+        sel.append(h('option', { value: c.chat_id, text: `${new Date(c.updated_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${c.title || '对话'}` })));
       if (S.chat.id) sel.value = S.chat.id;
     } catch { /* history is optional */ }
   }
@@ -649,8 +649,8 @@
     box.replaceChildren();
     if (!S.chat.messages.length) {
       box.append(h('div', { class: 'chat-empty' },
-        h('b', { text: S.pid ? 'Ask about this node' : 'Select a patient on the left first' }),
-        h('span', { text: S.pid ? (chatMode() === 'locked' ? 'AI sees only admissions discharged before Day 0. Answers show the reasoning, tool calls and cited admission IDs as they stream.' : 'AI sees all admissions. Answers separate “visible then” from “known only in hindsight”.') : 'The workbench turns the case into de-identified context and passes it to the cloud model you choose.' })));
+        h('b', { text: S.pid ? '问问这个节点' : '先在左侧选择患者' }),
+        h('span', { text: S.pid ? (chatMode() === 'locked' ? 'AI 只看得到第 0 天之前已出院的住院。回答会实时显示思考过程、工具调用和引用的住院编号。' : 'AI 能看到全部住院。回答会区分“当时可见”和“事后才知道”。') : '工作台会把病例整理成脱敏上下文，再交给你选的云端模型。' })));
       return;
     }
     for (const m of S.chat.messages) box.append(m.role === 'user' ? userBubble(m.content) : aiBlock(m, false).root);
@@ -665,12 +665,12 @@
     const thinkSum = h('summary'), thinkBody = h('div', { class: 'body' });
     think.append(thinkSum, thinkBody);
     const tools = h('div', { class: 'tools' }), answer = h('div', { class: 'answer' }), warns = h('div', { class: 'warnings' });
-    const status = h('div', { class: 'msg-status' }, h('span', { class: 'live' }), h('span', { text: 'Connecting to the cloud model…' }));
+    const status = h('div', { class: 'msg-status' }, h('span', { class: 'live' }), h('span', { text: '正在连接云端模型…' }));
     root.append(meta, think, tools, status, answer, warns);
     const toolEls = {};
     let pending = null, answerText = '', thinkingText = '';
     const toolLine = (ev, state) => h('div', { class: 'tool ' + state }, h('b', { text: TOOL_NAMES[ev.name] || ev.name }),
-      h('span', { text: [ev.input && (ev.input.ref || ev.input.keyword), state === 'pending' ? 'Calling…' : ev.summary].filter(Boolean).join(' · ') }));
+      h('span', { text: [ev.input && (ev.input.ref || ev.input.keyword), state === 'pending' ? '调用中…' : ev.summary].filter(Boolean).join(' · ') }));
     const api_ = {
       root,
       meta(text) { meta.textContent = text; },
@@ -678,27 +678,27 @@
       thinking(text) {
         thinkingText = text; think.hidden = false;
         if (!answerText) think.open = true;
-        thinkSum.replaceChildren(h('span', { class: 'live' }), ' Thinking…');
+        thinkSum.replaceChildren(h('span', { class: 'live' }), ' 思考中…');
         thinkBody.textContent = text; thinkBody.scrollTop = thinkBody.scrollHeight;
-        api_.status('Thinking');
+        api_.status('思考中');
       },
       answer(text) {
-        if (!answerText && text) { think.open = false; if (thinkingText) thinkSum.textContent = `Reasoning (${thinkingText.length} chars)`; status.hidden = true; }
+        if (!answerText && text) { think.open = false; if (thinkingText) thinkSum.textContent = `思考过程（${thinkingText.length} 字）`; status.hidden = true; }
         answerText = text;
         if (pending) return;
         pending = requestAnimationFrame(() => { pending = null; answer.innerHTML = md(answerText) + '<span class="caret"></span>'; scrollChat(); });
       },
-      toolStart(ev) { const el = toolLine(ev, 'pending'); toolEls[ev.id] = el; tools.append(el); api_.status('Tool call: ' + (TOOL_NAMES[ev.name] || ev.name)); scrollChat(); },
+      toolStart(ev) { const el = toolLine(ev, 'pending'); toolEls[ev.id] = el; tools.append(el); api_.status('调用工具：' + (TOOL_NAMES[ev.name] || ev.name)); scrollChat(); },
       toolDone(ev) { const el = toolLine(ev, ev.error ? 'err' : ''); if (toolEls[ev.id]) toolEls[ev.id].replaceWith(el); else tools.append(el); toolEls[ev.id] = el; },
       finish({ done, error }) {
         if (pending) { cancelAnimationFrame(pending); pending = null; }
         status.hidden = true;
         answer.innerHTML = md(answerText);
-        if (thinkingText) { thinkSum.textContent = `Reasoning (${thinkingText.length} chars)`; think.open = false; } else think.hidden = true;
+        if (thinkingText) { thinkSum.textContent = `思考过程（${thinkingText.length} 字）`; think.open = false; } else think.hidden = true;
         if (done) {
           meta.textContent = metaText(done);
           (done.warnings || []).forEach(w => warns.append(h('span', { class: 'tag warn', text: '⚠ ' + w })));
-          if (!answerText) answer.append(h('div', { class: 'msg-status', text: '(The model gave no text answer)' }));
+          if (!answerText) answer.append(h('div', { class: 'msg-status', text: '（模型没有给出文字回答）' }));
         }
         if (error) root.append(h('div', { class: 'msg-error', text: error }));
       },
@@ -708,7 +708,7 @@
     } else {
       status.hidden = true;
       meta.textContent = metaText(msg);
-      if (msg.thinking) { thinkSum.textContent = `Reasoning (${msg.thinking.length} chars)`; thinkBody.textContent = msg.thinking; } else think.hidden = true;
+      if (msg.thinking) { thinkSum.textContent = `思考过程（${msg.thinking.length} 字）`; thinkBody.textContent = msg.thinking; } else think.hidden = true;
       (msg.tool_events || []).forEach(ev => tools.append(toolLine(ev, '')));
       answer.innerHTML = md(msg.content || '');
       (msg.warnings || []).forEach(w => warns.append(h('span', { class: 'tag warn', text: '⚠ ' + w })));
@@ -717,7 +717,7 @@
   }
   function metaText(m) {
     const u = m.usage || {};
-    return [m.served_model, m.seconds != null ? `${m.seconds} s` : '', u.input ? `Input ${fmtInt(u.input)}` : '', u.output ? `output ${fmtInt(u.output)} tokens` : '', u.reasoning ? `reasoning ${fmtInt(u.reasoning)}` : '', u.cache_read ? `cached ${fmtInt(u.cache_read)}` : ''].filter(Boolean).join(' · ');
+    return [m.served_model, m.seconds != null ? `${m.seconds} 秒` : '', u.input ? `输入 ${fmtInt(u.input)}` : '', u.output ? `输出 ${fmtInt(u.output)} tokens` : '', u.reasoning ? `其中推理 ${fmtInt(u.reasoning)}` : '', u.cache_read ? `缓存 ${fmtInt(u.cache_read)}` : ''].filter(Boolean).join(' · ');
   }
   function scrollChat() {
     const box = $('#messages');
@@ -727,7 +727,7 @@
   function setStreaming(on, streamId = '') {
     S.chat.streaming = on; S.chat.streamId = on ? streamId : '';
     const btn = $('#sendBtn');
-    btn.textContent = on ? 'Stop' : 'Send';
+    btn.textContent = on ? '停止' : '发送';
     btn.classList.toggle('stop', on);
     $$('#quickPrompts button').forEach(b => { b.disabled = on; });
     renderExportBanner();
@@ -736,10 +736,10 @@
   async function send(text) {
     text = (text || '').trim();
     if (!text || S.chat.streaming) return;
-    if (!S.pid) { toast('Select a patient first'); return; }
+    if (!S.pid) { toast('请先选择患者'); return; }
     const a = S.status.assistant, p = provider();
-    if (!a.allow_export) { toast('Sending case data is not authorised: see the note on the right'); return; }
-    if (!p || !p.configured) { toast((p ? p.label : 'the cloud provider') + ' is not configured'); return; }
+    if (!a.allow_export) { toast('未授权外发病例：见右侧提示'); return; }
+    if (!p || !p.configured) { toast((p ? p.label : '云端接口') + '未配置'); return; }
     const streamId = Math.random().toString(16).slice(2, 14);
     const payload = { patient_id: S.pid, node_id: S.nodeId, mode: chatMode(), chat_id: S.chat.id, message: text,
       provider: p.provider, model: $('#modelSelect').value, effort: $('#effortSelect').value, stream_id: streamId };
@@ -756,12 +756,12 @@
     S.chat.controller = controller;
     const started = performance.now();
     let answer = '', thinking = '', done = null, error = null, firstToken = false;
-    const timer = setInterval(() => { if (!firstToken) live.status(`Model reading the case and reasoning · ${((performance.now() - started) / 1000).toFixed(0)} s`); }, 500);
+    const timer = setInterval(() => { if (!firstToken) live.status(`模型阅读病例、推理中 · ${((performance.now() - started) / 1000).toFixed(0)} 秒`); }, 500);
     const handle = ev => {
       if (ev.type === 'meta') {
         S.chat.id = ev.chat_id;
         live.meta(`${ev.model} → ${ev.destination}`);
-        if (ev.user && ev.user !== text) { bubble.textContent = ev.user; bubble.title = 'Identity removed and dates converted to relative days before sending'; }
+        if (ev.user && ev.user !== text) { bubble.textContent = ev.user; bubble.title = '发送前已隐去身份信息、日期换算为相对天数'; }
       } else if (ev.type === 'thinking') { firstToken = true; thinking += ev.delta; live.thinking(thinking); }
       else if (ev.type === 'content') { firstToken = true; answer += ev.delta; live.answer(answer); }
       else if (ev.type === 'tool_call') { firstToken = true; live.toolStart(ev); }
@@ -769,12 +769,12 @@
       else if (ev.type === 'status') live.status(ev.text);
       else if (ev.type === 'done') done = ev;
       else if (ev.type === 'error') error = ev.message;
-      else if (ev.type === 'stopped') error = 'Generation stopped';
+      else if (ev.type === 'stopped') error = '已停止生成';
     };
     try {
       const res = await fetch('/api/v2/chat/stream', { method: 'POST', signal: controller.signal,
         headers: { 'Content-Type': 'application/json', 'X-HCC-Token': TOKEN }, body: JSON.stringify(payload) });
-      if (!res.ok || !res.body) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Request failed ' + res.status); }
+      if (!res.ok || !res.body) { const d = await res.json().catch(() => ({})); throw new Error(d.error || '请求失败 ' + res.status); }
       const reader = res.body.getReader(), dec = new TextDecoder();
       let buf = '';
       for (;;) {
@@ -789,10 +789,10 @@
         }
       }
     } catch (e) {
-      error = e.name === 'AbortError' ? 'Generation stopped' : e.message;
+      error = e.name === 'AbortError' ? '已停止生成' : e.message;
     }
     clearInterval(timer);
-    if (!done && !error) error = 'Connection lost; the answer was not saved';
+    if (!done && !error) error = '连接中断，回答没有保存';
     live.finish({ done, error });
     setStreaming(false);
     if (done) {
@@ -884,11 +884,11 @@
   const blobToBase64 = blob => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
-    reader.onerror = () => reject(new Error('Could not read the file'));
+    reader.onerror = () => reject(new Error('读取文件失败'));
     reader.readAsDataURL(blob);
   });
   async function toggleVoice(target = $('#composerInput'), button = $('#voiceBtn'), say = note) {
-    if (!S.status.voice_configured) { toast('Local speech model not configured (start with --voice-model)'); return; }
+    if (!S.status.voice_configured) { toast('本地语音模型未配置（启动时用 --voice-model）'); return; }
     if (recorder) { recorder.stop(); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -898,33 +898,33 @@
       recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         const blob = new Blob(chunks, { type: recorder.mimeType });
-        recorder = null; button.classList.remove('recording'); say('Transcribing on this machine…');
-        try { const r = await api.post('/api/voice', { data: await blobToBase64(blob) }); insertText(r.text, target); say('Transcribed; check drug names, doses and negations'); }
+        recorder = null; button.classList.remove('recording'); say('正在本机转写…');
+        try { const r = await api.post('/api/voice', { data: await blobToBase64(blob) }); insertText(r.text, target); say('已转写，请核对药名、剂量和否定词'); }
         catch (e) { toast(e.message); say(''); }
       };
-      recorder.start(); button.classList.add('recording'); say('Recording; click again to stop');
-    } catch (e) { toast('Cannot use the microphone: ' + e.message); }
+      recorder.start(); button.classList.add('recording'); say('录音中，再点一次结束');
+    } catch (e) { toast('无法使用麦克风：' + e.message); }
   }
   async function upload(file, target = $('#composerInput'), say = note) {
     if (!file) return;
-    if (file.size > 12 * 1024 * 1024) { toast('File is larger than 12 MB'); return; }
-    say('Extracting text on this machine…');
+    if (file.size > 12 * 1024 * 1024) { toast('文件超过 12 MB'); return; }
+    say('正在本机提取文字…');
     try {
       const r = await api.post('/api/upload', { filename: file.name, data: await blobToBase64(file) });
-      insertText(`[Physician note · ${file.name}]\n${r.text}`, target);
-      say(`Extracted ${fmtInt(r.characters)} characters (processed locally)`);
+      insertText(`【医生补充 · ${file.name}】\n${r.text}`, target);
+      say(`已提取 ${fmtInt(r.characters)} 字（本机处理）`);
     } catch (e) { toast(e.message); say(''); }
   }
 
   // ---------- treatment map (merged from the old /flow page; whole course) ----------
-  const ACTION_LABELS = { TACE: 'Embolization (TACE)', RESECTION: 'Hepatectomy', ABLATION: 'Ablation', HAIC: 'Hepatic arterial infusion chemotherapy', RADIATION: 'Radiotherapy',
-    SYSTEMIC: 'Systemic therapy', MULTIMODAL: 'Multiple treatments', OTHER: 'Other / unspecified', TRANSPLANT: 'Liver transplant' };
-  const GOAL_LABELS = { DIRECT_CURATIVE: 'Direct cure', ENABLE_CURATIVE: 'Seek a chance of cure', DISEASE_CONTROL: 'Disease control', PREVENT_RECURRENCE: 'Prevent recurrence',
-    SYMPTOM_COMFORT: 'Symptom relief', MIXED: 'Multiple goals', UNKNOWN: 'To be clarified', eligible: 'Curative conditions met', ineligible: 'Curative conditions not met now', uncertain: 'Curative conditions to be assessed' };
-  const EVIDENCE_KINDS = [['clinical_note', 'Record / state'], ['imaging_report', 'Imaging report'], ['laboratory', 'Labs / tests'], ['drug_administration', 'Drugs / treatment'], ['followup', 'Follow-up'], ['doctor_review', 'Physician review']];
+  const ACTION_LABELS = { TACE: '介入栓塞（TACE）', RESECTION: '肝切除', ABLATION: '消融', HAIC: '肝动脉灌注化疗', RADIATION: '放疗',
+    SYSTEMIC: '系统治疗', MULTIMODAL: '多类治疗', OTHER: '其他／未明确', TRANSPLANT: '肝移植' };
+  const GOAL_LABELS = { DIRECT_CURATIVE: '直接根治', ENABLE_CURATIVE: '争取根治机会', DISEASE_CONTROL: '控制疾病', PREVENT_RECURRENCE: '预防复发',
+    SYMPTOM_COMFORT: '缓解症状', MIXED: '多个治疗目的', UNKNOWN: '待明确', eligible: '具备根治条件', ineligible: '当前不具备根治条件', uncertain: '根治条件待评估' };
+  const EVIDENCE_KINDS = [['clinical_note', '病历 / 状态'], ['imaging_report', '影像报告'], ['laboratory', '化验 / 检查'], ['drug_administration', '给药 / 治疗'], ['followup', '随访'], ['doctor_review', '医生复核']];
   const NODE_W = 240, NODE_H = 118;
   const M = { pid: '', graph: null, branch: '', scale: 0.55, tx: 30, ty: 30, selected: null, side: 'analysis', linkFrom: null, drag: null, job: null, jobInfo: null, frame: null, generation: 0, editor: null };
-  const when = v => (v ? String(v).replace('T', ' ').slice(0, 16) : 'Time missing');
+  const when = v => (v ? String(v).replace('T', ' ').slice(0, 16) : '时间待补');
   const pct = v => (v == null ? '—' : (v * 100).toFixed(1) + '%');
 
   function mapReset() { Object.assign(M, { pid: '', graph: null, branch: '', selected: null, side: 'analysis', linkFrom: null, drag: null, job: null, jobInfo: null }); }
@@ -941,31 +941,31 @@
 
   function tabMap(body) {
     if (S.mode === 'locked') {
-      body.append(h('div', { class: 'lock-card' }, h('h3', { text: 'The treatment map shows the full course' }),
-        h('p', { text: 'The map shows admissions and branches after the node; opening it is logged as “follow-up course viewed”. If Layer B is not filled in yet, do that first.' }),
-        h('button', { class: 'primary-btn', text: 'Switch to full course and open the map', onclick: () => { S.tab = 'map'; setMode('full'); } })));
+      body.append(h('div', { class: 'lock-card' }, h('h3', { text: '治疗地图包含全部病程' }),
+        h('p', { text: '地图会显示节点之后的住院和后续分支，打开会记录为“已查看后续病程”。如果还没填写 B 层判断，建议先填写。' }),
+        h('button', { class: 'primary-btn', text: '切到全病程并打开地图', onclick: () => { S.tab = 'map'; setMode('full'); } })));
       return;
     }
     const engine = h('span', { class: 'map-engine', id: 'mapEngine' });
     const toolbar = h('div', { class: 'map-toolbar' },
       h('div', { class: 'map-tools' },
-        h('button', { class: 'ghost-btn small', text: '+ Add record', title: 'Continue from the selected node (default: current record)', onclick: () => mapEditor(M.selected && M.selected.kind === 'node' ? M.selected.id : null) }),
-        h('button', { class: 'ghost-btn small', text: '↗ Link', onclick: () => mapLinkEditor() }),
-        h('button', { class: 'ghost-btn small', text: '↶ Undo', title: 'Revert to the previous version of added records', onclick: mapUndo }),
-        h('button', { class: 'ghost-btn small', text: 'Versions', onclick: mapVersions }),
+        h('button', { class: 'ghost-btn small', text: '＋ 补录', title: '从选中的节点（默认当前记录）继续', onclick: () => mapEditor(M.selected && M.selected.kind === 'node' ? M.selected.id : null) }),
+        h('button', { class: 'ghost-btn small', text: '↗ 连线', onclick: () => mapLinkEditor() }),
+        h('button', { class: 'ghost-btn small', text: '↶ 撤销', title: '恢复到上一版补录记录', onclick: mapUndo }),
+        h('button', { class: 'ghost-btn small', text: '版本', onclick: mapVersions }),
         h('span', { class: 'divider' }),
-        h('button', { class: 'ghost-btn small', text: '−', 'aria-label': 'Zoom out', onclick: () => mapZoom(1 / 1.2) }),
+        h('button', { class: 'ghost-btn small', text: '−', 'aria-label': '缩小', onclick: () => mapZoom(1 / 1.2) }),
         h('span', { class: 'zoom', id: 'mapZoom', text: '' }),
-        h('button', { class: 'ghost-btn small', text: '+', 'aria-label': 'Zoom in', onclick: () => mapZoom(1.2) }),
-        h('button', { class: 'ghost-btn small', text: 'Fit to view', onclick: mapFit }),
-        h('button', { class: 'ghost-btn small', text: 'Go to current', onclick: mapFocusCurrent }),
-        h('button', { class: 'ghost-btn small', text: '↺ Auto layout', onclick: mapResetLayout }),
-        h('button', { class: 'ghost-btn small', text: document.querySelector('.node-card.map-max') ? '⤡ Restore' : '⛶ Expand', onclick: mapToggleMax })),
+        h('button', { class: 'ghost-btn small', text: '＋', 'aria-label': '放大', onclick: () => mapZoom(1.2) }),
+        h('button', { class: 'ghost-btn small', text: '适应全图', onclick: mapFit }),
+        h('button', { class: 'ghost-btn small', text: '定位当前', onclick: mapFocusCurrent }),
+        h('button', { class: 'ghost-btn small', text: '↺ 自动布局', onclick: mapResetLayout }),
+        h('button', { class: 'ghost-btn small', text: document.querySelector('.node-card.map-max') ? '⤡ 还原' : '⛶ 放大', onclick: mapToggleMax })),
       engine);
-    const canvas = h('div', { class: 'map-canvas', id: 'mapCanvas', tabindex: '0', 'aria-label': 'Treatment map canvas: drag to pan, scroll to zoom, drag nodes to rearrange' },
+    const canvas = h('div', { class: 'map-canvas', id: 'mapCanvas', tabindex: '0', 'aria-label': '治疗地图画布：拖动平移，滚轮缩放，拖动节点调整布局' },
       h('div', { class: 'map-world', id: 'mapWorld' }, s('svg', { class: 'map-edges', id: 'mapEdges' }), h('div', { id: 'mapLabels' }), h('div', { id: 'mapNodes' })),
-      h('div', { class: 'map-hint', id: 'mapHint', text: 'Drag to pan · scroll to zoom · drag nodes to rearrange · click for details' }));
-    body.append(toolbar, h('div', { class: 'map-body' }, canvas, h('aside', { class: 'map-side', id: 'mapSide' }, h('div', { class: 'empty', text: 'Loading treatment map…' }))));
+      h('div', { class: 'map-hint', id: 'mapHint', text: '拖动画布平移 · 滚轮缩放 · 拖动节点调整布局 · 点击查看详情' }));
+    body.append(toolbar, h('div', { class: 'map-body' }, canvas, h('aside', { class: 'map-side', id: 'mapSide' }, h('div', { class: 'empty', text: '正在读取治疗地图…' }))));
     bindMapCanvas(canvas);
     if (M.pid === S.pid && M.graph) { drawMap(); renderMapSide(); } else { M.branch = ''; M.selected = null; M.side = 'analysis'; loadMap(true).catch(e => toast(e.message)); }
   }
@@ -1035,7 +1035,7 @@
     const box = $('#mapNodes');
     box.replaceChildren(...visible.map(n => {
       const prob = n.probabilities && n.probabilities.next_recorded_action_probability;
-      const head = n.kind === 'forecast' ? `Branch ${String(n.rank).padStart(2, '0')}` : n.kind === 'operation' ? 'State · ' + when(n.time) : when(n.time);
+      const head = n.kind === 'forecast' ? `后续分支 ${String(n.rank).padStart(2, '0')}` : n.kind === 'operation' ? '状态 · ' + when(n.time) : when(n.time);
       const el = h('div', {
         class: ['map-node', n.kind, n.mode, n.current ? 'current' : '', M.selected && M.selected.id === n.id ? 'selected' : '', M.linkFrom === n.id ? 'link-from' : ''].join(' '),
         dataset: { node: n.id }, role: 'button', tabindex: '0', 'aria-label': n.title || head,
@@ -1045,9 +1045,9 @@
       n.kind === 'operation' ? null : h('div', { class: 'mn-title', text: n.title }),
       h('div', { class: 'mn-summary', text: n.summary || '' }),
       h('div', { class: 'mn-foot' },
-        prob != null ? h('span', { class: 'tag violet', text: 'Next treatment ' + pct(prob) }) : n.intent ? h('span', { class: 'tag', text: n.intent }) : null,
-        n.current ? h('span', { class: 'tag accent', text: '● Current record' }) : null,
-        n.death ? h('span', { class: 'tag danger', text: 'In-hospital death' }) : null));
+        prob != null ? h('span', { class: 'tag violet', text: '下次治疗 ' + pct(prob) }) : n.intent ? h('span', { class: 'tag', text: n.intent }) : null,
+        n.current ? h('span', { class: 'tag accent', text: '● 当前记录' }) : null,
+        n.death ? h('span', { class: 'tag danger', text: '院内死亡' }) : null));
       return el;
     }));
     const svg = $('#mapEdges');
@@ -1072,7 +1072,7 @@
     svg.replaceChildren(defs, ...paths);
     $('#mapLabels').replaceChildren(...labels);
     const hint = $('#mapHint');
-    if (hint) hint.textContent = M.linkFrom ? 'Link mode: click the end node (Esc to cancel)' : `${M.graph.episodes.length} care episodes · ${M.graph.edges.filter(e => e.procedure_id).length} procedures · version v${M.graph.revision}`;
+    if (hint) hint.textContent = M.linkFrom ? '连线模式：点击终点节点（Esc 取消）' : `${M.graph.episodes.length} 个就诊阶段 · ${M.graph.edges.filter(e => e.procedure_id).length} 项操作 · 版本 v${M.graph.revision}`;
   }
 
   function bindMapCanvas(canvas) {
@@ -1105,7 +1105,7 @@
       if (d.id && d.moved) {
         const n = M.graph.nodes.find(x => x.id === d.id);
         try { await api.post('/api/flow/layout', { patient_id: S.pid, branch_id: M.branch, positions: { [n.id]: { x: Math.round(n.x), y: Math.round(n.y) } } }); }
-        catch (err) { toast('Layout not saved: ' + err.message); }
+        catch (err) { toast('布局未保存：' + err.message); }
       }
     });
     canvas.addEventListener('keydown', e => { if (e.key === 'Escape' && M.linkFrom) { M.linkFrom = null; drawMap(); } });
@@ -1121,13 +1121,13 @@
   }
 
   function sideTabs() {
-    return h('div', { class: 'segmented side-tabs' }, ...[['analysis', 'AI analysis'], ['detail', 'Details'], ['edit', 'Add record']].map(([k, label]) =>
+    return h('div', { class: 'segmented side-tabs' }, ...[['analysis', 'AI 分析'], ['detail', '详情'], ['edit', '补录']].map(([k, label]) =>
       h('button', { class: M.side === k ? 'active' : '', text: label, onclick: () => { if (k === 'edit') mapEditor(); else { M.side = k; renderMapSide(); } } })));
   }
   function renderMapSide() {
     const side = $('#mapSide'); if (!side || !M.graph) return;
     const engine = $('#mapEngine');
-    if (engine) engine.textContent = M.graph.analysis_available ? `AI analysis: ${M.graph.analysis_engine}` : 'AI analysis not configured';
+    if (engine) engine.textContent = M.graph.analysis_available ? `AI 分析：${M.graph.analysis_engine}` : 'AI 分析未配置';
     if (M.side === 'edit' && M.editor) { side.replaceChildren(sideTabs(), M.editor); return; }
     side.replaceChildren(sideTabs(), M.side === 'detail' ? mapDetail() : mapAnalysis());
   }
@@ -1141,31 +1141,31 @@
     const a = M.graph.analysis && M.graph.analysis.analysis;
     const forecasts = M.graph.nodes.filter(n => n.kind === 'forecast').sort((x, y) => x.rank - y.rank);
     if (M.jobInfo) {
-      box.append(h('div', { class: 'callout accent' }, h('b', { text: 'AI analysis in progress: ' }), M.jobInfo.stage || 'queued'),
+      box.append(h('div', { class: 'callout accent' }, h('b', { text: 'AI 分析进行中：' }), M.jobInfo.stage || '排队中'),
         h('ol', { class: 'job-steps' }, ...(M.jobInfo.events || []).map(ev => h('li', { text: `${ev.stage}` }))));
     }
     if (a) {
-      box.append(h('div', { class: 'section-title', text: 'Current assessment' }), h('p', { class: 'side-summary', text: a.summary_zh }),
+      box.append(h('div', { class: 'section-title', text: '当前判断' }), h('p', { class: 'side-summary', text: a.summary_zh }),
         h('span', { class: 'tag accent', text: a.intent_zh }));
-      box.append(h('div', { class: 'section-title', text: `Conditional paths (${a.branches.length})` }));
+      box.append(h('div', { class: 'section-title', text: `条件路径（${a.branches.length}）` }));
       a.branches.forEach((br, i) => box.append(h('div', { class: 'branch-card' },
-        h('b', { text: `${String(i + 1).padStart(2, '0')} · ${br.title}` }), h('p', { text: br.conditions }), h('p', { class: 'muted', text: 'Next stage: ' + br.next_stage }),
-        h('button', { class: 'ghost-btn small', text: 'Show on map ↗', onclick: () => { const n = forecasts.find(f => f.rank === i + 1); if (n) { mapChoose(n.id, 'node'); mapFocus(n); } } }))));
-      if (a.questions && a.questions.length) box.append(h('div', { class: 'section-title', text: 'Information to add first' }), h('ul', { class: 'plain-list' }, ...a.questions.map(q => h('li', { text: q }))));
+        h('b', { text: `${String(i + 1).padStart(2, '0')} · ${br.title}` }), h('p', { text: br.conditions }), h('p', { class: 'muted', text: '下一阶段：' + br.next_stage }),
+        h('button', { class: 'ghost-btn small', text: '在图上查看 ↗', onclick: () => { const n = forecasts.find(f => f.rank === i + 1); if (n) { mapChoose(n.id, 'node'); mapFocus(n); } } }))));
+      if (a.questions && a.questions.length) box.append(h('div', { class: 'section-title', text: '优先补充的信息' }), h('ul', { class: 'plain-list' }, ...a.questions.map(q => h('li', { text: q }))));
       const refs = ((M.graph.analysis.public_evidence || {}).references || []).filter(r => String(r.url).startsWith('https://'));
-      if (refs.length) box.append(h('div', { class: 'section-title', text: 'Sources searched' }), ...refs.map(r => h('a', { class: 'ref-a', href: r.url, target: '_blank', rel: 'noopener noreferrer', text: `${r.id} · ${r.title} ↗` })));
-      box.append(h('p', { class: 'muted small', text: `${fmtInt((M.graph.analysis.local_retrieval || {}).patients || 0)} similar patients · saved ${when(M.graph.analysis.created_at)} · ${M.graph.analysis.model || ''}` }));
+      if (refs.length) box.append(h('div', { class: 'section-title', text: '检索来源' }), ...refs.map(r => h('a', { class: 'ref-a', href: r.url, target: '_blank', rel: 'noopener noreferrer', text: `${r.id} · ${r.title} ↗` })));
+      box.append(h('p', { class: 'muted small', text: `相似患者 ${fmtInt((M.graph.analysis.local_retrieval || {}).patients || 0)} 名 · 保存于 ${when(M.graph.analysis.created_at)} · ${M.graph.analysis.model || ''}` }));
     } else if (!M.jobInfo) {
-      box.append(h('div', { class: 'callout' }, 'The dashed purple lines on the right are branches from the local model (probabilities of the treatment class at the next admission). The AI analysis combines the course, similar patients and public guidelines to set out the conditions for each branch.'));
+      box.append(h('div', { class: 'callout' }, '画布右端的紫色虚线是本地模型给出的后续分支（下一次住院的治疗类别概率）。AI 分析会结合病程、相似患者和公开指南，整理每条分支的适用条件。'));
     }
     if (forecasts.length && !a) {
-      box.append(h('div', { class: 'section-title', text: 'Local model branches' }), ...forecasts.map(n => h('button', { class: 'branch-row', onclick: () => { mapChoose(n.id, 'node'); mapFocus(n); } },
+      box.append(h('div', { class: 'section-title', text: '本地模型分支' }), ...forecasts.map(n => h('button', { class: 'branch-row', onclick: () => { mapChoose(n.id, 'node'); mapFocus(n); } },
         h('span', { text: n.title }), h('span', { class: 'num', text: pct(n.probabilities && n.probabilities.next_recorded_action_probability) }))));
     }
     const web = h('input', { type: 'checkbox', id: 'mapUseWeb', checked: true });
-    box.append(h('div', { class: 'form-foot' }, h('label', { class: 'check' }, web, ' Search public guidelines (no case data sent)'),
-      h('button', { class: 'primary-btn', text: a ? 'Analyse again' : 'Generate AI analysis', disabled: !M.graph.analysis_available || !!M.jobInfo, onclick: () => mapAnalyze(true, web.checked) })));
-    if (!M.graph.analysis_available) box.append(h('p', { class: 'muted small', text: 'Requires starting with --allow-sensitive-export and a saved OpenAI key.' }));
+    box.append(h('div', { class: 'form-foot' }, h('label', { class: 'check' }, web, ' 检索公开指南（不发送病例）'),
+      h('button', { class: 'primary-btn', text: a ? '重新分析' : '生成 AI 分析', disabled: !M.graph.analysis_available || !!M.jobInfo, onclick: () => mapAnalyze(true, web.checked) })));
+    if (!M.graph.analysis_available) box.append(h('p', { class: 'muted small', text: '需要以 --allow-sensitive-export 启动并保存 OpenAI 密钥。' }));
     return box;
   }
 
@@ -1173,49 +1173,49 @@
     const box = h('div', { class: 'side-body' });
     const sel = M.selected;
     const item = sel && (sel.kind === 'edge' ? M.graph.edges.find(e => e.id === sel.id) : M.graph.nodes.find(n => n.id === sel.id));
-    if (!item) { box.append(h('div', { class: 'empty', text: 'Click a node or link on the map for details.' })); return box; }
-    box.append(h('div', { class: 'eyebrow', text: sel.kind === 'edge' ? 'Treatment link' : 'Course state' }), h('h3', { class: 'side-title', text: item.title || item.label || '' }),
-      h('p', { class: 'muted small', text: `${when(item.time)} · ${item.origin || (item.mode === 'planned' ? 'Planned' : 'Record')}` }));
+    if (!item) { box.append(h('div', { class: 'empty', text: '点击地图上的节点或连线查看详情。' })); return box; }
+    box.append(h('div', { class: 'eyebrow', text: sel.kind === 'edge' ? '治疗连线' : '病程状态' }), h('h3', { class: 'side-title', text: item.title || item.label || '' }),
+      h('p', { class: 'muted small', text: `${when(item.time)} · ${item.origin || (item.mode === 'planned' ? '拟采取' : '记录')}` }));
     if (sel.kind === 'edge') {
       if (item.operation) box.append(h('dl', { class: 'kv' }, ...['name', 'time', 'time_status', 'record_type', 'slot'].filter(k => item.operation[k] != null).flatMap(k => [h('dt', { text: k }), h('dd', { text: String(item.operation[k]) })])));
-      if (item.details && item.details.length) box.append(h('div', { class: 'section-title', text: 'Hospital summary (source text)' }), ...item.details.map(p => h('p', { text: p.name })));
+      if (item.details && item.details.length) box.append(h('div', { class: 'section-title', text: '院内汇总原文' }), ...item.details.map(p => h('p', { text: p.name })));
       return box;
     }
     if (item.summary) box.append(h('p', { class: 'side-summary', text: item.summary }));
-    if (item.operations) box.append(h('div', { class: 'section-title', text: `${item.operations.length} procedure records` }), ...item.operations.map(p => h('p', { text: `${p.name} · ${when(p.time)}` })));
-    if (item.summary_details && item.summary_details.length) box.append(h('div', { class: 'section-title', text: 'Hospital summary' }), ...item.summary_details.map(p => h('p', { text: p.name })));
+    if (item.operations) box.append(h('div', { class: 'section-title', text: `${item.operations.length} 条操作记录` }), ...item.operations.map(p => h('p', { text: `${p.name} · ${when(p.time)}` })));
+    if (item.summary_details && item.summary_details.length) box.append(h('div', { class: 'section-title', text: '院内汇总' }), ...item.summary_details.map(p => h('p', { text: p.name })));
     if (item.ai_summary || item.intent || item.candidacy) {
-      box.append(h('div', { class: 'section-title', text: 'AI retrospective reconstruction (uses later admissions; reference only)' }),
-        item.ai_summary ? h('p', { text: item.ai_summary }) : null, item.intent ? h('p', { text: 'Treatment goal: ' + item.intent }) : null,
-        item.candidacy ? h('p', { text: 'Curative conditions: ' + item.candidacy }) : null);
+      box.append(h('div', { class: 'section-title', text: 'AI 回顾性重建（使用了后续住院信息，只作参考）' }),
+        item.ai_summary ? h('p', { text: item.ai_summary }) : null, item.intent ? h('p', { text: '治疗目的：' + item.intent }) : null,
+        item.candidacy ? h('p', { text: '根治条件：' + item.candidacy }) : null);
     }
     if (item.branch) {
-      for (const [k, label] of [['conditions', 'Conditions and order of discussion'], ['next_stage', 'Next stage'], ['later_stage', 'Later stages'], ['medication_discussion', 'Drug discussion'], ['procedure_discussion', 'Procedure discussion']]) {
+      for (const [k, label] of [['conditions', '适用条件与讨论顺序'], ['next_stage', '下一阶段'], ['later_stage', '更远阶段'], ['medication_discussion', '用药讨论'], ['procedure_discussion', '操作讨论']]) {
         if (item.branch[k]) box.append(h('div', { class: 'section-title', text: label }), h('p', { text: item.branch[k] }));
       }
     }
     const p = item.probabilities;
     if (p) {
-      box.append(h('div', { class: 'section-title', text: 'Model probability' }),
-        h('div', { class: 'cost-row' }, h('span', { text: 'This treatment at the next admission' }), h('div', { class: 'bar' }, h('i', { style: { width: ((p.next_recorded_action_probability || 0) * 100).toFixed(1) + '%' } })), h('span', { class: 'num', text: pct(p.next_recorded_action_probability) })),
-        h('div', { class: 'section-title', text: 'Given this treatment · next-stage intent' }), ...probBars(p.astra_next_intent_probabilities),
-        h('div', { class: 'section-title', text: 'Given this treatment · curative conditions' }), ...probBars(p.astra_next_candidacy_probabilities),
-        p.predicted_record_gap_days != null ? h('p', { class: 'muted small', text: `Next admission expected in about ${Math.round(p.predicted_record_gap_days)} days` }) : null,
-        h('p', { class: 'muted small', text: 'These describe next-admission records and AI-reconstructed labels, not probabilities of efficacy.' }));
+      box.append(h('div', { class: 'section-title', text: '模型概率' }),
+        h('div', { class: 'cost-row' }, h('span', { text: '下一次住院采用该治疗' }), h('div', { class: 'bar' }, h('i', { style: { width: ((p.next_recorded_action_probability || 0) * 100).toFixed(1) + '%' } })), h('span', { class: 'num', text: pct(p.next_recorded_action_probability) })),
+        h('div', { class: 'section-title', text: '该治疗条件下 · 下一阶段意图' }), ...probBars(p.astra_next_intent_probabilities),
+        h('div', { class: 'section-title', text: '该治疗条件下 · 根治条件' }), ...probBars(p.astra_next_candidacy_probabilities),
+        p.predicted_record_gap_days != null ? h('p', { class: 'muted small', text: `下一次住院记录预计间隔约 ${Math.round(p.predicted_record_gap_days)} 天` }) : null,
+        h('p', { class: 'muted small', text: '统计对象是下一次住院的记录与 AI 重建标签，不是疗效概率。' }));
     }
     const actions = h('div', { class: 'button-row' },
-      h('button', { class: 'ghost-btn small', text: '+ Add record from here', onclick: () => mapEditor(item.id) }),
-      h('button', { class: 'ghost-btn small', text: '↗ Link from here', onclick: () => { M.linkFrom = item.id; drawMap(); toast('Click the end node of the link'); } }));
+      h('button', { class: 'ghost-btn small', text: '＋ 从这里补录', onclick: () => mapEditor(item.id) }),
+      h('button', { class: 'ghost-btn small', text: '↗ 从这里连线', onclick: () => { M.linkFrom = item.id; drawMap(); toast('请点击连线的终点节点'); } }));
     if (item.kind === 'manual') {
-      actions.append(h('button', { class: 'ghost-btn small', text: 'Correct this record', onclick: () => mapEditor(item.parent_id, item) }));
+      actions.append(h('button', { class: 'ghost-btn small', text: '更正此记录', onclick: () => mapEditor(item.parent_id, item) }));
       if (item.mode === 'planned') {
-        actions.append(h('button', { class: 'ghost-btn small', text: 'Analyse this option', onclick: async () => { M.branch = item.id; await loadMap(); mapAnalyze(false, true); } }),
-          h('button', { class: 'ghost-btn small', text: 'Record as happened', onclick: () => mapEditor(M.graph.current_id, { ...item, parent_id: M.graph.current_id, mode: 'observed' }) }));
+        actions.append(h('button', { class: 'ghost-btn small', text: '分析这条方案', onclick: async () => { M.branch = item.id; await loadMap(); mapAnalyze(false, true); } }),
+          h('button', { class: 'ghost-btn small', text: '补录为已发生', onclick: () => mapEditor(M.graph.current_id, { ...item, parent_id: M.graph.current_id, mode: 'observed' }) }));
       }
     }
     box.append(actions);
     if (item.clinical_fields) {
-      box.append(h('details', { class: 'raw' }, h('summary', { text: 'Raw admission fields' }),
+      box.append(h('details', { class: 'raw' }, h('summary', { text: '住院原始字段' }),
         h('dl', { class: 'kv' }, ...Object.entries(item.clinical_fields).flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: String(v) })]))));
     }
     return box;
@@ -1228,27 +1228,27 @@
     parentId = parentId || M.graph.current_id;
     const parent = M.graph.nodes.find(n => n.id === parentId);
     const episodes = M.graph.episodes.map(e => [e.id, `${e.title} · ${(e.end || '').slice(0, 10)}`]);
-    for (const r of M.graph.records) if (!episodes.some(e => e[0] === r.episode_id)) episodes.push([r.episode_id, 'New care episode']);
+    for (const r of M.graph.records) if (!episodes.some(e => e[0] === r.episode_id)) episodes.push([r.episode_id, '新增就诊阶段']);
     const f = {
-      mode: select([['observed', 'Happened · solid line'], ['planned', 'Planned · dashed line']], (record && record.mode) || (parent && parent.mode === 'planned' ? 'planned' : 'observed')),
-      title: h('input', { class: 'input', maxlength: '120', placeholder: 'e.g. state after follow-up', value: (record && record.title) || '' }),
+      mode: select([['observed', '已发生 · 实线'], ['planned', '拟采取 · 虚线']], (record && record.mode) || (parent && parent.mode === 'planned' ? 'planned' : 'observed')),
+      title: h('input', { class: 'input', maxlength: '120', placeholder: '例如：复查后状态', value: (record && record.title) || '' }),
       time: h('input', { class: 'input', type: 'datetime-local', value: ((record && record.time) || '').slice(0, 16) }),
-      text: h('textarea', { class: 'input', placeholder: 'Condition, symptoms and tests at this stage' }, (record && record.text) || ''),
-      treatment: h('textarea', { class: 'input', placeholder: 'Treatments, drugs or procedures given or planned' }, (record && record.treatment) || ''),
-      intent: h('input', { class: 'input', placeholder: 'e.g. disease control, seek a chance of resection', value: (record && record.intent) || '' }),
-      action: select([['', 'Not specified'], ...Object.entries(ACTION_LABELS)], (record && record.action) || ''),
+      text: h('textarea', { class: 'input', placeholder: '该阶段的病情、症状和检查' }, (record && record.text) || ''),
+      treatment: h('textarea', { class: 'input', placeholder: '已实施或拟采取的治疗、用药、操作' }, (record && record.treatment) || ''),
+      intent: h('input', { class: 'input', placeholder: '例如：控制疾病、争取切除机会', value: (record && record.intent) || '' }),
+      action: select([['', '未指定'], ...Object.entries(ACTION_LABELS)], (record && record.action) || ''),
       kind: select(EVIDENCE_KINDS, (record && record.evidence_kind) || 'clinical_note'),
-      episode: select([['new', 'New care episode'], ...episodes], (record && record.episode_id) || 'new'),
+      episode: select([['new', '新就诊阶段'], ...episodes], (record && record.episode_id) || 'new'),
       end: h('input', { class: 'input', type: 'datetime-local', value: ((record && record.episode_end) || '').slice(0, 16) }),
     };
-    const hint = h('small', { class: 'muted', text: 'Files are parsed and speech is transcribed on this machine.' });
+    const hint = h('small', { class: 'muted', text: '文件本机解析，语音本机转写。' });
     const say = t => { hint.textContent = t; };
-    const voiceBtn = h('button', { type: 'button', class: 'icon-btn', title: 'Voice input', text: '🎙', onclick: () => toggleVoice(f.text, voiceBtn, say) });
+    const voiceBtn = h('button', { type: 'button', class: 'icon-btn', title: '语音输入', text: '🎙', onclick: () => toggleVoice(f.text, voiceBtn, say) });
     const file = h('input', { type: 'file', accept: '.txt,.md,.json,.pdf,.docx', hidden: true, onchange: e => { upload(e.target.files[0], f.text, say); e.target.value = ''; } });
-    const submit = h('button', { type: 'submit', class: 'primary-btn', text: record ? 'Save correction' : 'Save record' });
+    const submit = h('button', { type: 'submit', class: 'primary-btn', text: record ? '保存更正' : '保存记录' });
     const form = h('form', { class: 'side-body map-form', onsubmit: async e => {
       e.preventDefault();
-      if (!f.title.value.trim()) { toast('Enter a title'); return; }
+      if (!f.title.value.trim()) { toast('请填写标题'); return; }
       const payload = { parent_id: parentId, branch_id: M.branch, title: f.title.value, text: f.text.value, treatment: f.treatment.value, intent: f.intent.value,
         mode: f.mode.value, time: f.time.value, action: f.action.value, episode_id: f.episode.value, episode_end: f.end.value, evidence_kind: f.kind.value };
       if (record) payload.id = record.id;
@@ -1256,60 +1256,60 @@
       await mapSave('record', payload);
       submit.disabled = false;
     } },
-    h('div', { class: 'eyebrow', text: record ? 'Correct record' : 'Continue the course' }), h('p', { class: 'muted small', text: 'From: ' + ((parent && parent.title) || 'current record') }),
-    field('Record status', f.mode), field('Title', f.title), field('Time happened / planned', f.time), field('Condition, symptoms and tests', f.text),
-    h('div', { class: 'button-row' }, voiceBtn, h('label', { class: 'icon-btn', title: 'Upload file' }, '📎', file), hint),
-    field('Treatment / drugs / procedure (shown on the link)', f.treatment), field('Treatment goal', f.intent), field('Treatment class', f.action), field('Record type', f.kind),
-    field('Care episode', f.episode), field('Enter an end time if the new episode has ended', f.end),
-    h('div', { class: 'form-foot' }, h('small', { class: 'muted', text: '“Happened” needs a time.' }), submit));
+    h('div', { class: 'eyebrow', text: record ? '更正记录' : '继续病程' }), h('p', { class: 'muted small', text: '起点：' + ((parent && parent.title) || '当前记录') }),
+    field('记录状态', f.mode), field('标题', f.title), field('发生 / 计划时间', f.time), field('病情、症状和检查', f.text),
+    h('div', { class: 'button-row' }, voiceBtn, h('label', { class: 'icon-btn', title: '上传文件' }, '📎', file), hint),
+    field('治疗 / 用药 / 操作（显示在连线上）', f.treatment), field('治疗目的', f.intent), field('治疗类别', f.action), field('资料类型', f.kind),
+    field('所属就诊阶段', f.episode), field('新阶段已结束时填写结束时间', f.end),
+    h('div', { class: 'form-foot' }, h('small', { class: 'muted', text: '“已发生”必须填写时间。' }), submit));
     M.editor = form; M.side = 'edit'; renderMapSide();
   }
   function mapLinkEditor(source = null, target = null) {
     if (!M.graph) return;
-    const nodes = M.graph.nodes.map(n => [n.id, `${n.title || 'State'} · ${when(n.time)}`]);
-    const src = select(nodes, source || M.graph.current_id), dst = select([['', 'Select'], ...nodes], target || '');
-    const label = h('textarea', { class: 'input', placeholder: 'Treatment, drugs or the link between the two' });
+    const nodes = M.graph.nodes.map(n => [n.id, `${n.title || '状态'} · ${when(n.time)}`]);
+    const src = select(nodes, source || M.graph.current_id), dst = select([['', '请选择'], ...nodes], target || '');
+    const label = h('textarea', { class: 'input', placeholder: '治疗、用药或两者之间的联系' });
     const form = h('form', { class: 'side-body map-form', onsubmit: async e => {
       e.preventDefault();
-      if (!dst.value || !label.value.trim()) { toast('Choose an end node and fill in the content'); return; }
+      if (!dst.value || !label.value.trim()) { toast('请选择终点并填写内容'); return; }
       await mapSave('link', { branch_id: M.branch, source: src.value, target: dst.value, label: label.value });
     } },
-    h('div', { class: 'eyebrow', text: 'Draw a treatment link' }), field('From', src), field('To', dst), field('Content', label),
-    h('p', { class: 'muted small', text: 'You can also click “Link from here” in the details and then the end node.' }),
-    h('div', { class: 'form-foot' }, h('span'), h('button', { type: 'submit', class: 'primary-btn', text: 'Save link' })));
+    h('div', { class: 'eyebrow', text: '绘制治疗连线' }), field('起点', src), field('终点', dst), field('内容', label),
+    h('p', { class: 'muted small', text: '也可以在详情里点“从这里连线”，再点终点节点。' }),
+    h('div', { class: 'form-foot' }, h('span'), h('button', { type: 'submit', class: 'primary-btn', text: '保存连线' })));
     M.editor = form; M.side = 'edit'; renderMapSide();
   }
   async function mapSave(operation, payload) {
     try {
       const res = await api.post('/api/flow/save', { patient_id: S.pid, revision: M.graph.revision, operation, payload, analyze: false });
       M.branch = res.branch_id || ''; M.editor = null; M.side = 'analysis';
-      await loadMap(); toast(`Saved · v${res.revision}`);
+      await loadMap(); toast(`已保存 · v${res.revision}`);
     } catch (e) {
       toast(e.message);
-      if (/refresh/i.test(e.message)) await loadMap();
+      if (/刷新/.test(e.message)) await loadMap();
     }
   }
   function mapUndo() {
     const last = M.graph && M.graph.versions[M.graph.versions.length - 1];
-    if (!last) { toast('This is the original course; there are no added records to undo'); return; }
+    if (!last) { toast('当前是原始病程，没有可撤销的补录'); return; }
     mapSave('restore', { revision: last.revision });
   }
   async function mapResetLayout() {
-    try { await api.post('/api/flow/layout', { patient_id: S.pid, reset: true, positions: {} }); await loadMap(); mapFit(); toast('Auto layout restored'); }
+    try { await api.post('/api/flow/layout', { patient_id: S.pid, reset: true, positions: {} }); await loadMap(); mapFit(); toast('已恢复自动布局'); }
     catch (e) { toast(e.message); }
   }
   async function mapVersions() {
     try {
       const res = await api.get('/api/flow/versions', { id: S.pid });
       const dialog = h('dialog', { class: 'versions' },
-        h('div', { class: 'dialog-head' }, h('b', { text: 'Record versions and saved analyses' }), h('button', { class: 'icon-btn', text: '×', onclick: () => dialog.close() })),
-        h('div', { class: 'section-title', text: 'Record versions' }),
+        h('div', { class: 'dialog-head' }, h('b', { text: '补录版本与已保存分析' }), h('button', { class: 'icon-btn', text: '×', onclick: () => dialog.close() })),
+        h('div', { class: 'section-title', text: '补录版本' }),
         ...(res.versions.length ? [...res.versions].reverse().map(v => h('div', { class: 'version-row' },
-          h('span', { text: `v${v.revision} · ${when(v.updated_at)} · ${v.records.length} added records` }),
-          h('button', { class: 'ghost-btn small', text: 'Restore this version', onclick: () => { dialog.close(); mapSave('restore', { revision: v.revision }); } }))) : [h('p', { class: 'muted', text: 'This is the original version of the course.' })]),
-        h('div', { class: 'section-title', text: 'Saved AI analyses' }),
-        ...(res.analyses.length ? res.analyses.map(a => h('details', {}, h('summary', { text: `v${a.graph_revision ?? 'old'} · ${when(a.created_at)}` }), h('p', { text: (a.analysis || {}).summary_zh || '' })))
-          : [h('p', { class: 'muted', text: 'No saved analyses yet.' })]));
+          h('span', { text: `v${v.revision} · ${when(v.updated_at)} · ${v.records.length} 条补录` }),
+          h('button', { class: 'ghost-btn small', text: '恢复此版', onclick: () => { dialog.close(); mapSave('restore', { revision: v.revision }); } }))) : [h('p', { class: 'muted', text: '当前为原始病程版本。' })]),
+        h('div', { class: 'section-title', text: '已保存的 AI 分析' }),
+        ...(res.analyses.length ? res.analyses.map(a => h('details', {}, h('summary', { text: `v${a.graph_revision ?? '旧版'} · ${when(a.created_at)}` }), h('p', { text: (a.analysis || {}).summary_zh || '' })))
+          : [h('p', { class: 'muted', text: '还没有保存的分析。' })]));
       dialog.addEventListener('close', () => dialog.remove());
       document.body.append(dialog); dialog.showModal();
     } catch (e) { toast(e.message); }
@@ -1319,17 +1319,17 @@
     const pid = S.pid, revision = M.graph.revision, branch = M.branch;
     try {
       const res = await api.post('/api/flow/analyze', { patient_id: pid, revision, branch_id: branch, use_web: useWeb,
-        goal: force ? 'Redo the treatment conditions, priorities and next stages using the current records.' : '' });
-      if (res.status === 'cached') { await loadMap(); toast('Analysis from this version restored'); return; }
-      M.jobInfo = { stage: 'queued', events: [] }; renderMapSide();
+        goal: force ? '重新结合当前记录整理治疗条件、优先顺序与下一阶段。' : '' });
+      if (res.status === 'cached') { await loadMap(); toast('已恢复这一版本的分析'); return; }
+      M.jobInfo = { stage: '排队中', events: [] }; renderMapSide();
       for (;;) {
         const job = await api.get('/api/job', { id: res.job_id });
         if (pid !== S.pid) { M.jobInfo = null; return; }
         M.jobInfo = job; if (S.tab === 'map') renderMapSide();
-        if (job.status === 'completed') { M.jobInfo = null; await loadMap(); toast('AI analysis finished and saved'); return; }
+        if (job.status === 'completed') { M.jobInfo = null; await loadMap(); toast('AI 分析完成，已保存'); return; }
         if (job.status === 'failed') {
           M.jobInfo = null; renderMapSide();
-          toast('Analysis not finished: ' + (job.error || 'Unknown error') + (job.error_status ? ` (HTTP ${job.error_status})` : '')); return;
+          toast('分析未完成：' + (job.error || '未知错误') + (job.error_status ? `（HTTP ${job.error_status}）` : '')); return;
         }
         await new Promise(r => setTimeout(r, 1500));
       }
@@ -1347,10 +1347,10 @@
     $('#themeToggle').addEventListener('click', cycleTheme);
     $('#togglePatients').addEventListener('click', () => document.body.classList.toggle('show-patients'));
     $('#toggleAssistant').addEventListener('click', () => document.body.classList.toggle('show-assistant'));
-    $('#providerSelect').addEventListener('change', () => { savePref('provider', $('#providerSelect').value); renderModels(); if (S.chat.id) { resetChat(); toast('Provider switched; starting a new chat'); } renderExportBanner(); });
-    $('#modelSelect').addEventListener('change', () => { const p = provider(); if (p) savePref('model.' + p.provider, $('#modelSelect').value); if (S.chat.id) { resetChat(); toast('Model switched; starting a new chat'); } });
+    $('#providerSelect').addEventListener('change', () => { savePref('provider', $('#providerSelect').value); renderModels(); if (S.chat.id) { resetChat(); toast('已切换接口，开始新对话'); } renderExportBanner(); });
+    $('#modelSelect').addEventListener('change', () => { const p = provider(); if (p) savePref('model.' + p.provider, $('#modelSelect').value); if (S.chat.id) { resetChat(); toast('已切换模型，开始新对话'); } });
     $('#effortSelect').addEventListener('change', () => savePref('effort', $('#effortSelect').value));
-    $('#newChat').addEventListener('click', () => { if (S.chat.streaming) { toast('Stop the current chat first'); return; } resetChat(); });
+    $('#newChat').addEventListener('click', () => { if (S.chat.streaming) { toast('请先停止当前对话'); return; } resetChat(); });
     $('#historySelect').addEventListener('change', e => { if (S.chat.streaming) return; loadChat(e.target.value); });
     $('#composer').addEventListener('submit', e => { e.preventDefault(); if (S.chat.streaming) stop(); else send($('#composerInput').value); });
     $('#composerInput').addEventListener('keydown', e => {

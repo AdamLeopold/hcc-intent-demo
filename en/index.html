@@ -1,38 +1,12 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="hcc-token" content="static"><title>HCC-INTENT · Patient treatment map</title>
-<meta name="description" content="Patient treatment map: the whole course by admission and procedure, linking every treatment to the next step.">
-<meta name="data-version" content="5b35edde3d">
-<link rel="alternate" hreflang="zh-CN" href="../">
-<link rel="stylesheet" href="../flow.css?v=c9bda5fcbd"><link rel="stylesheet" href="../site.css?v=8c9be41195">
-<script src="../mock.js?v=6196f97edd"></script><script src="flow.js?v=fb59a0a47c" defer></script></head>
-<body>
-<aside id="patientPanel" class="patient-panel">
-  <a class="brand" href="workbench.html"><span class="brand-icon">H</span><span>HCC-INTENT<small>BIOAGENT / CLINICAL INTELLIGENCE</small></span></a>
-  <div class="workspace-tag"><i></i> Patient treatment map <span>LIVE</span></div>
-  <div class="list-heading">Patient records <span id="totalPatients">—</span></div>
-  <label class="search"><span>⌕</span><input id="patientSearch" aria-label="Search by name or last four ID digits" placeholder="Name / last four ID digits"></label>
-  <div id="patientList" class="patient-list"></div><button id="loadMore" class="load-more">Load more patients</button>
-  <div class="sidebar-foot"><i></i><div>GPT-6 Astra<small>Local records · continuous analysis</small></div><span>✧</span></div>
-</aside>
-<main id="mainPanel">
-  <header class="topbar"><div class="patient-title"><button id="togglePatients" aria-label="Collapse or expand the patient list">☰</button><div><div class="eyebrow">PATIENT JOURNEY</div><h1 id="patientName">Patient treatment map</h1></div></div><div class="header-tools"><a class="site-link" href="workbench.html" title="Repeat-TACE node workbench">New workbench ↗</a><nav class="lang-switch" aria-label="Language"><a href="../" hreflang="zh-CN" lang="zh-CN">中文</a><span aria-current="page">English</span></nav><button id="showVersions">Versions</button><button id="fullscreen" aria-label="Full-screen canvas">⛶</button><button id="toggleInspector" aria-label="Collapse or expand the analysis panel">◧</button></div></header>
-  <div class="journey-meta"><span id="patientRange">Loading patient records…</span><span id="nodeCount"></span><span class="legend"><i></i> Recorded <i class="purple"></i> Next branches</span></div>
-  <section id="canvas" class="canvas" aria-label="Draggable patient treatment flowchart" tabindex="0">
-    <div class="canvas-grid"></div><div id="world" class="world"><svg id="episodeBraces" class="edges" aria-label="Episode summary brackets"></svg><div id="episodeSummaries"></div><svg id="edges" class="edges" aria-label="Treatment links"></svg><div id="edgeLabels"></div><div id="nodes"></div></div>
-    <div id="canvasEmpty" class="canvas-empty"><div class="orbit">✧</div><h2>Link every treatment to the next step</h2><p>Select a patient to open the full treatment map</p></div>
-    <div class="canvas-top"><button id="journeyIndex">Course index</button><button id="addNode" class="accent">+ Add state</button><button id="addLink">↗ Draw link</button><button id="undoEdit" title="Undo the last clinical edit">Undo</button></div>
-    <div class="canvas-bottom"><div class="canvas-controls"><button id="zoomOut" aria-label="Zoom out">−</button><span id="zoomValue">100%</span><button id="zoomIn" aria-label="Zoom in">+</button><span class="divider"></span><button id="fitGraph">Fit all</button><button id="goCurrent">Go to current</button><button id="resetLayout" title="Restore automatic layout">↺</button></div><span class="gesture-hint">Drag nodes to arrange · drag the canvas to pan · scroll to zoom</span></div>
-    <div class="minimap-wrap"><div>Course navigator <span id="saveState">Layout saved</span></div><svg id="minimap" width="200" height="90" aria-label="Course minimap"></svg></div>
-  </section>
-  <footer><span><i></i> <span id="jobStatus">Ready</span></span><span id="revisionLabel">FLOW / v0</span></footer>
-</main>
-<aside id="inspector" class="inspector">
-  <div class="inspector-heading"><span class="astra-mark">✧</span><div><h2>Astra clinical analysis</h2><small>From records to judgement, from judgement to the next step</small></div><span id="busyDot" class="status-dot"></span></div>
-  <div class="inspector-tabs"><button id="analysisTab" class="active">Next steps</button><button id="detailTab">Node details</button><button id="editTab">Add record</button></div>
-  <div id="inspectorBody" class="inspector-body"><div class="empty-panel">Select a state box or treatment link to see details.</div></div>
-  <div class="inspector-bottom"><label><input type="checkbox" id="publicSearch" checked> Search public guidelines</label><button id="reanalyze" class="accent">Reanalyse ↗</button></div>
-</aside>
-<dialog id="versionsDialog"><div class="dialog-title"><h2>Map versions and analyses</h2><button id="closeVersions">×</button></div><div id="versionList"></div></dialog>
-<div id="toast" class="toast" role="status" hidden></div>
-</body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HCC-INTENT</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="../">
+<meta http-equiv="refresh" content="0; url=../">
+<script>location.replace('../' + location.hash)</script>
+</head>
+<body><a href="../">HCC-INTENT</a></body>
+</html>

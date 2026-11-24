@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="hcc-token" content="static">
+<meta name="data-version" content="499df22f23">
+<meta name="description" content="重复 TACE 节点工作台：时间锁视图、A/B 层记录、治疗地图与 AI 助手。">
+<title>重复 TACE 工作台</title>
+<link rel="alternate" hreflang="en" href="../workbench.html">
+<link rel="stylesheet" href="../workbench.css?v=7196ac542c">
+<link rel="stylesheet" href="../site.css?v=8c9be41195">
+</head>
+<body>
+<header class="topbar">
+  <button id="togglePatients" class="icon-btn only-narrow" aria-label="患者列表">☰</button>
+  <div class="brand"><span class="brand-mark">H</span><div><strong>HCC-INTENT</strong><small>重复 TACE 节点工作台</small></div></div>
+  <div id="statusChips" class="status-chips"></div>
+  <div class="top-actions">
+    <a href="./" class="link-btn" title="原来的患者治疗地图">旧版治疗地图</a><nav class="lang-switch" aria-label="Language"><span aria-current="page">中文</span><a href="../workbench.html" hreflang="en" lang="en">English</a></nav>
+    <button id="themeToggle" class="icon-btn" aria-label="切换明暗主题" title="切换明暗主题">◐</button>
+    <button id="toggleAssistant" class="icon-btn only-medium" aria-label="AI 助手">✦</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside id="patientsPanel" class="patients">
+    <div class="panel-head">
+      <label class="search"><span aria-hidden="true">⌕</span><input id="patientSearch" placeholder="搜索研究编号" aria-label="搜索研究编号" autocomplete="off"></label>
+      <div class="segmented" id="scopeSwitch" role="tablist" aria-label="患者范围">
+        <button data-scope="hcc_nodes" class="active" role="tab">HCC 节点</button>
+        <button data-scope="nodes" role="tab">全部节点</button>
+        <button data-scope="all" role="tab">全部患者</button>
+      </div>
+      <div class="list-meta"><span id="patientTotal">—</span><span class="hint">按最近住院排序</span></div>
+    </div>
+    <div id="patientList" class="patient-list" role="listbox" aria-label="患者"></div>
+    <button id="loadMore" class="ghost-btn load-more" hidden>加载更多</button>
+  </aside>
+
+  <main id="casePanel" class="case">
+    <section id="welcome" class="welcome">
+      <div class="welcome-card">
+        <h1>重复 TACE 节点工作台</h1>
+        <p>每个节点只看当时可见的信息，再决定下一步。</p>
+        <ol class="steps">
+          <li><b>选患者和节点</b><span>左侧默认列出有重复 TACE 节点的肝细胞癌患者；时间轴上的 ◆ 是节点。</span></li>
+          <li><b>看当时可见的病程</b><span>时间锁默认开启：节点入院之后的住院、本次住院的内容都隐藏。</span></li>
+          <li><b>问 AI，记下判断</b><span>右侧对话会实时显示思考、工具调用和回答；B 层判断由医生填写，AI 不预填。</span></li>
+        </ol>
+        <div id="welcomeNotes" class="research-notes"></div>
+      </div>
+    </section>
+
+    <section id="caseView" class="case-view" hidden>
+      <div class="case-head">
+        <div class="case-title">
+          <div class="eyebrow" id="caseEyebrow"></div>
+          <h1 id="caseTitle"></h1>
+          <div id="caseBadges" class="badges"></div>
+        </div>
+        <div id="caseStats" class="case-stats"></div>
+      </div>
+
+      <div class="card timeline-card">
+        <div class="card-head">
+          <div class="node-strip" id="nodeStrip" aria-label="重复 TACE 节点"></div>
+          <div class="segmented mode-switch" id="modeSwitch" aria-label="视图模式">
+            <button data-mode="locked" class="active" title="只显示节点入院前已出院的住院">🔒 时间锁</button>
+            <button data-mode="full" title="显示全部住院，会记录为已查看后续病程">全病程</button>
+          </div>
+        </div>
+        <div id="modeHint" class="mode-hint"></div>
+        <div id="timeline" class="timeline" aria-label="住院时间轴"></div>
+        <div class="legend" id="timelineLegend"></div>
+      </div>
+
+      <div class="card node-card">
+        <nav class="tabs" id="tabs" role="tablist">
+          <button data-tab="visible" class="active" role="tab">当时可见</button>
+          <button data-tab="alayer" role="tab">A 层 · 状态</button>
+          <button data-tab="blayer" role="tab">B 层 · 医生记录</button>
+          <button data-tab="after" role="tab">后续病程</button>
+          <button data-tab="map" role="tab">治疗地图</button>
+          <button data-tab="detail" role="tab">住院详情</button>
+        </nav>
+        <div id="tabBody" class="tab-body"></div>
+      </div>
+    </section>
+  </main>
+
+  <aside id="assistantPanel" class="assistant">
+    <div class="assistant-head">
+      <div class="assistant-title"><span class="spark">✦</span><div><strong>AI 助手</strong><small id="assistantSub">云端模型 · 流式</small></div></div>
+      <span id="assistantDot" class="dot" title="状态"></span>
+    </div>
+    <div class="model-row">
+      <select id="providerSelect" aria-label="接口"></select>
+      <select id="modelSelect" aria-label="模型"></select>
+      <select id="effortSelect" aria-label="思考强度" title="思考强度">
+        <option value="low">低思考</option><option value="medium">中思考</option><option value="high" selected>高思考</option>
+      </select>
+    </div>
+    <div id="exportBanner" class="export-banner"></div>
+    <div class="context-bar">
+      <span id="contextChip" class="context-chip">未选择患者</span>
+      <div class="context-actions">
+        <select id="historySelect" aria-label="历史对话"><option value="">历史对话</option></select>
+        <button id="newChat" class="ghost-btn small">新对话</button>
+      </div>
+    </div>
+    <div id="messages" class="messages" aria-live="polite"></div>
+    <div id="quickPrompts" class="quick-prompts"></div>
+    <form id="composer" class="composer">
+      <textarea id="composerInput" rows="3" placeholder="问这个节点的问题，或补充当时的检查结果…（Enter 发送，Shift+Enter 换行）"></textarea>
+      <div class="composer-actions">
+        <div class="left">
+          <button type="button" id="voiceBtn" class="icon-btn" title="本地语音转文字" aria-label="语音输入">🎙</button>
+          <label class="icon-btn" title="上传文字型文件（本地提取）" aria-label="上传文件">📎<input id="fileInput" type="file" accept=".txt,.md,.json,.pdf,.docx" hidden></label>
+          <span id="composerNote" class="composer-note"></span>
+        </div>
+        <button type="submit" id="sendBtn" class="primary-btn">发送</button>
+      </div>
+    </form>
+  </aside>
+</div>
+<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
+<script src="../mock.js?v=6196f97edd"></script>
+<script src="workbench.js?v=5388346680"></script>
+</body>
+</html>
